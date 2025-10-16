@@ -1,0 +1,74 @@
+MIT License
+
+Copyright (c) 2024 DreamWalk Project
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+## Additional Terms for Research Use
+
+This software is designed for research and educational purposes in the field of
+brain-computer interfaces, neural signal processing, and immersive computing.
+
+### Research Ethics
+
+When using this software for research involving human subjects:
+
+1. **Ethical Approval**: Obtain appropriate institutional review board (IRB)
+   approval before conducting any research involving human subjects.
+
+2. **Informed Consent**: Ensure all participants provide informed consent
+   before participating in any research activities.
+
+3. **Data Privacy**: Protect participant privacy and confidentiality in
+   accordance with applicable data protection regulations.
+
+4. **Responsible Use**: Use the software responsibly and in accordance with
+   ethical guidelines for brain-computer interface research.
+
+### Data Handling
+
+- EEG and neural data should be handled according to applicable privacy laws
+- Implement appropriate data anonymization techniques
+- Secure storage and transmission of sensitive neural data
+- Follow institutional data handling policies
+
+### Commercial Use
+
+For commercial use of this software, please contact the maintainers to discuss
+licensing terms and potential collaboration opportunities.
+
+### Disclaimer
+
+This software is provided for research and educational purposes. The authors
+make no claims about the accuracy, reliability, or safety of neural signal
+processing or brain-computer interface applications. Users assume all
+responsibility for their use of this software.
+
+### Acknowledgments
+
+This software builds upon numerous open-source projects and research
+contributions. Please see the acknowledgments section in the README for
+details.
+
+---
+
+For questions about licensing or commercial use, please contact:
+[contact@dreamwalk.ai]

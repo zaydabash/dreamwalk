@@ -1,0 +1,193 @@
+version: '3.8'
+
+services:
+  # Signal Processing Service
+  signal-processor:
+    build: 
+      context: ./services/signal-processor
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./datasets:/app/datasets
+      - ./models:/app/models
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - KAFKA_BROKER=kafka:9092
+    depends_on:
+      - redis
+      - kafka
+    restart: unless-stopped
+
+  # Neural Decoder Service
+  neural-decoder:
+    build:
+      context: ./services/neural-decoder
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./models:/app/models
+      - ./datasets:/app/datasets
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - MODEL_PATH=/app/models/checkpoints
+    depends_on:
+      - redis
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+
+  # Real-time Server
+  realtime-server:
+    build:
+      context: ./services/realtime-server
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+      - "8004:8004"  # WebSocket
+    volumes:
+      - ./models:/app/models
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - SIGNAL_PROCESSOR_URL=http://signal-processor:8001
+      - NEURAL_DECODER_URL=http://neural-decoder:8002
+      - TEXTURE_GENERATOR_URL=http://texture-generator:8005
+      - NARRATIVE_LAYER_URL=http://narrative-layer:8006
+    depends_on:
+      - redis
+      - signal-processor
+      - neural-decoder
+    restart: unless-stopped
+
+  # Texture Generator Service
+  texture-generator:
+    build:
+      context: ./services/texture-generator
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8005"
+    volumes:
+      - ./unity/DreamWalkVR/Assets/Generated:/app/output
+      - ./models:/app/models
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - OUTPUT_PATH=/app/output
+      - HUGGINGFACE_HUB_TOKEN=${HUGGINGFACE_HUB_TOKEN}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Narrative Layer Service
+  narrative-layer:
+    build:
+      context: ./services/narrative-layer
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8006"
+    volumes:
+      - ./models:/app/models
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # Web Dashboard
+  web-dashboard:
+    build:
+      context: ./services/web-dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - REALTIME_SERVER_URL=http://realtime-server:8003
+      - WS_URL=ws://localhost:8004
+    depends_on:
+      - realtime-server
+    restart: unless-stopped
+
+  # Redis for caching and pub/sub
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+  # Kafka for high-throughput streaming
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    depends_on:
+      - zookeeper
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    restart: unless-stopped
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: dreamwalk-network

@@ -1,0 +1,68 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # DreamWalk Signal Processor
+  - job_name: 'dreamwalk-signal-processor'
+    static_configs:
+      - targets: ['signal-processor:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # DreamWalk Neural Decoder
+  - job_name: 'dreamwalk-neural-decoder'
+    static_configs:
+      - targets: ['neural-decoder:8002']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # DreamWalk Real-time Server
+  - job_name: 'dreamwalk-realtime-server'
+    static_configs:
+      - targets: ['realtime-server:8003']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # DreamWalk Texture Generator
+  - job_name: 'dreamwalk-texture-generator'
+    static_configs:
+      - targets: ['texture-generator:8005']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # DreamWalk Narrative Layer
+  - job_name: 'dreamwalk-narrative-layer'
+    static_configs:
+      - targets: ['narrative-layer:8006']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # DreamWalk Web Dashboard
+  - job_name: 'dreamwalk-web-dashboard'
+    static_configs:
+      - targets: ['web-dashboard:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  # Redis
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+
+  # Node Exporter (if available)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # cAdvisor (if available)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+    scrape_interval: 30s
