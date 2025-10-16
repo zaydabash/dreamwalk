@@ -167,6 +167,103 @@ python scripts/generate_synthetic_data.py --samples 10000
 - **VR Performance**: 72+ FPS on Quest 3
 - **Accuracy**: 85%+ emotion classification on test data
 
+## About
+
+DreamWalk represents a breakthrough in neural interface technology, combining cutting-edge neuroscience research with advanced machine learning and immersive computing. The system bridges the gap between human consciousness and digital environments, enabling users to explore their own neural patterns as living, breathing virtual worlds.
+
+### Research Foundation
+
+Built on established neuroscience principles and state-of-the-art signal processing techniques, DreamWalk leverages:
+
+- **Real-time EEG analysis** with artifact removal and feature extraction
+- **Neural decoding algorithms** that map brain activity to semantic embeddings
+- **Emotional state estimation** using valence-arousal-dominance models
+- **Procedural generation** that responds to neural patterns in real-time
+
+### Technical Innovation
+
+The system introduces several novel approaches:
+
+- **EEG-to-CLIP mapping** for semantic neural decoding
+- **Real-time world morphing** based on neural state changes
+- **Multi-modal integration** combining EEG, emotion estimation, and procedural generation
+- **Scalable microservices architecture** for production deployment
+
+### Applications
+
+DreamWalk has potential applications across multiple domains:
+
+- **Neuroscience Research**: Visualizing brain activity patterns as explorable environments
+- **Therapeutic Interventions**: Creating healing environments based on emotional states
+- **Creative Expression**: Transforming meditation and creative states into artistic worlds
+- **Education**: Making neural processes tangible and interactive
+
+## Releases
+
+### Version 1.0.0 (Current)
+
+**Initial Release** - January 2024
+
+**Features:**
+- Complete microservices architecture with 6 core services
+- Real-time EEG signal processing with artifact removal
+- Neural decoder for EEG-to-CLIP embedding mapping
+- Emotion classification (valence, arousal, dominance)
+- Procedural world generation with 9 biome types
+- Unity VR integration with smooth world morphing
+- Web dashboard for real-time monitoring
+- Docker orchestration with Prometheus/Grafana monitoring
+- Mock data generation for immediate demo capabilities
+
+**Technical Stack:**
+- Python 3.10+ with FastAPI and WebSocket support
+- PyTorch for neural network models
+- Stable Diffusion for texture generation
+- Unity 2023.3+ with OpenXR VR support
+- Docker Compose for service orchestration
+- Redis for caching and pub/sub messaging
+
+**System Requirements:**
+- Docker & Docker Compose
+- Python 3.10+
+- Unity 2023.3+ (for VR components)
+- NVIDIA GPU (recommended for texture generation)
+- 8GB+ RAM
+- 10GB+ disk space
+
+### Upcoming Releases
+
+**Version 1.1.0** - Planned for Q2 2024
+- Real EEG hardware integration (OpenBCI)
+- fMRI support for offline analysis
+- Additional biome types and generation algorithms
+- Mobile app companion
+- Multiplayer dreamscape sharing
+
+**Version 1.2.0** - Planned for Q3 2024
+- Advanced neural motif detection
+- AI agent integration in virtual worlds
+- Haptic feedback support
+- Cloud deployment options
+- Enterprise authentication and security
+
+**Version 2.0.0** - Planned for Q4 2024
+- Real-time fMRI integration
+- Multi-modal neural data fusion
+- Advanced procedural narrative generation
+- Cross-platform mobile support
+- Research collaboration tools
+
+### Release Notes
+
+For detailed release notes and changelog, see [RELEASES.md](RELEASES.md).
+
+### Download
+
+- **Latest Release**: [v1.0.0](https://github.com/zaydabash/dreamwalk/releases/tag/v1.0.0)
+- **Source Code**: Clone the repository or download as ZIP
+- **Docker Images**: Available on Docker Hub (coming soon)
+
 ## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
