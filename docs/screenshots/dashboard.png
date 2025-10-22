@@ -1,0 +1,11 @@
+# Placeholder for Web Dashboard Screenshot
+# This file should be replaced with an actual screenshot of the web dashboard
+# showing real-time neural signal monitoring, emotion classification,
+# and world state visualization.
+
+# To create this screenshot:
+# 1. Run ./setup.sh to start all services
+# 2. Run ./run_demo.sh to generate mock data  
+# 3. Open http://localhost:8000 in browser
+# 4. Take screenshot of the dashboard showing live data
+# 5. Save as dashboard.png in this directory

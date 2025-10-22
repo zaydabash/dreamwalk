@@ -17,6 +17,24 @@ Built on state-of-the-art neuroscience research and deep learning models, DreamW
 - **Web Dashboard**: Real-time monitoring and visualization of neural states
 - **Mock Mode**: Complete demo experience without hardware
 
+## Screenshots
+
+### Web Dashboard
+![Web Dashboard](docs/screenshots/dashboard.png)
+*Real-time monitoring of neural signals, emotional states, and world generation*
+
+### VR Environment
+![VR Dreamscape](docs/screenshots/vr_dreamscape.png)
+*Immersive virtual world generated from neural activity*
+
+### Neural Signal Processing
+![EEG Processing](docs/screenshots/eeg_signals.png)
+*Real-time EEG signal analysis and feature extraction*
+
+### World Generation
+![World Generation](docs/screenshots/world_generation.png)
+*Procedural biome generation based on emotional state*
+
 ## Architecture
 
 ```

@@ -1,0 +1,10 @@
+# Placeholder for VR Environment Screenshot
+# This file should be replaced with an actual screenshot of the Unity VR environment
+# showing generated dreamscapes, different biome types, and immersive world generation.
+
+# To create this screenshot:
+# 1. Import Unity project from unity/DreamWalkVR/
+# 2. Set up VR headset (Quest 3, Vive, etc.)
+# 3. Run the demo and capture VR footage
+# 4. Take screenshots of different biome types
+# 5. Save as vr_dreamscape.png in this directory

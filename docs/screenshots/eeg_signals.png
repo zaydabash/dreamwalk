@@ -1,0 +1,10 @@
+# Placeholder for Neural Signal Processing Screenshot
+# This file should be replaced with an actual screenshot showing
+# EEG signal processing, spectral analysis, and feature extraction.
+
+# To create this screenshot:
+# 1. Use mock EEG data or real OpenBCI device
+# 2. Capture signal processing pipeline output
+# 3. Show before/after artifact removal
+# 4. Display feature extraction results
+# 5. Save as eeg_signals.png in this directory
