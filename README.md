@@ -6,6 +6,8 @@ DreamWalk is a neural interface platform that bridges neuroscience and artificia
 
 Built on state-of-the-art neuroscience research and deep learning models, DreamWalk combines real-time neural signal processing, emotion classification, and AI-powered world generation to transform consciousness into explorable environments.
 
+![DreamWalk Neural Interface](dreamwalk.png)
+
 ## Features
 
 - **Real-time EEG Processing**: Live neural signal ingestion with artifact removal and feature extraction
