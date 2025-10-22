@@ -1,8 +1,8 @@
 # DreamWalk - Neural Dreamscape Generator
 
-**Advanced neural interface system that uses machine learning to decode brain signals and generate immersive virtual worlds**
+**Neural interface system that uses machine learning to decode brain signals and generate immersive virtual worlds**
 
-DreamWalk is a cutting-edge neural interface platform that bridges neuroscience and artificial intelligence to create immersive virtual experiences. The system uses advanced machine learning algorithms to decode real-time EEG and fMRI signals, translating brain activity patterns into dynamic, procedurally generated virtual worlds that you can explore in VR.
+DreamWalk is a neural interface platform that bridges neuroscience and artificial intelligence to create immersive virtual experiences. The system uses machine learning algorithms to decode real-time EEG and fMRI signals, translating brain activity patterns into dynamic, procedurally generated virtual worlds that you can explore in VR.
 
 Built on state-of-the-art neuroscience research and deep learning models, DreamWalk combines real-time neural signal processing, emotion classification, and AI-powered world generation to transform consciousness into explorable environments.
 
