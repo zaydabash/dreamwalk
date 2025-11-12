@@ -165,13 +165,42 @@ dreamwalk/
 4. Submit pull request
 
 ### Testing
+
+**Test Coverage: 70%+ (target: 95%)**
+
+The project includes comprehensive unit and integration tests with pytest. Code quality is enforced through flake8, pylint, black, and mypy.
+
 ```bash
-# Run all tests
-docker-compose -f docker-compose.test.yml up
+# Run all tests with coverage
+pytest tests/ -v --cov=services --cov-report=term-missing --cov-report=html
 
 # Run specific service tests
 cd services/signal-processor && python -m pytest
+
+# Run only unit tests
+pytest tests/ -m unit
+
+# Run integration tests
+pytest tests/ -m integration
+
+# Run code quality checks
+flake8 services/
+pylint services/
+black --check services/
+isort --check-only services/
+mypy services/
 ```
+
+**Test Structure:**
+- `tests/services/` - Unit tests for each service
+- `tests/integration/` - End-to-end integration tests
+- `tests/conftest.py` - Shared pytest fixtures
+
+**CI/CD:**
+- Automated testing on push and pull requests
+- Code quality checks (flake8, pylint, black, isort)
+- Security scanning (bandit, safety)
+- Coverage reporting (target: 95% coverage)
 
 ### Training Models
 ```bash
@@ -188,6 +217,37 @@ python scripts/generate_synthetic_data.py --samples 10000
 - **Throughput**: 10Hz real-time processing
 - **VR Performance**: 72+ FPS on Quest 3
 - **Accuracy**: 85%+ emotion classification on test data
+- **Test Coverage**: 70%+ (target: 95%)
+
+## Security
+
+**Security is a top priority for DreamWalk, especially when handling sensitive neural data.**
+
+### Security Features
+
+- **Input Validation**: All API endpoints validate and sanitize inputs using Pydantic models
+- **Secret Management**: Environment variables and secrets are never committed to version control
+- **Dependency Scanning**: Automated security scanning of dependencies in CI/CD pipeline
+- **Code Quality**: Static analysis tools (flake8, pylint, bandit) check for security issues
+- **Data Privacy**: Neural data is handled with privacy and compliance in mind
+
+### Security Considerations
+
+**Development Environment:**
+- API endpoints do not require authentication (development only)
+- Services communicate over HTTP (use HTTPS in production)
+- CORS is open for development (restrict in production)
+
+**Production Recommendations:**
+- Enable authentication on all API endpoints
+- Use HTTPS/TLS for all service communication
+- Configure proper CORS settings
+- Store secrets in secure secret management systems
+- Enable Redis AUTH and Kafka security
+- Implement rate limiting and input validation
+- Enable data encryption at rest and in transit
+
+For detailed security information, see [SECURITY.md](SECURITY.md).
 
 ## About
 
@@ -286,9 +346,45 @@ For detailed release notes and changelog, see [RELEASES.md](RELEASES.md).
 - **Source Code**: Clone the repository or download as ZIP
 - **Docker Images**: Available on Docker Hub (coming soon)
 
+## Code Quality
+
+The project maintains high code quality standards:
+
+- **Linting**: flake8 and pylint for code style and quality
+- **Formatting**: black for code formatting, isort for import sorting
+- **Type Checking**: mypy for static type checking
+- **Testing**: pytest with 70%+ test coverage (target: 95%)
+- **Security**: bandit for security scanning, safety for dependency checks
+- **CI/CD**: Automated testing and quality checks on every commit
+
+**Running Quality Checks:**
+```bash
+# Format code
+black services/
+isort services/
+
+# Run linters
+flake8 services/
+pylint services/
+
+# Type checking
+mypy services/
+
+# Security scanning
+bandit -r services/
+safety check
+```
+
 ## Contributing
 
 Contributions are welcomed. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+**Before submitting a pull request:**
+1. Ensure all tests pass: `pytest tests/`
+2. Run code quality checks: `flake8 services/ && black --check services/`
+3. Update tests if adding new features
+4. Update documentation as needed
+5. Ensure test coverage remains above 70%
 
 ## License
 

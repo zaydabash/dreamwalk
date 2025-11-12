@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov pytest-asyncio pytest-mock
+        pip install -r services/signal-processor/requirements.txt
+        pip install -r services/neural-decoder/requirements.txt
+        pip install -r services/realtime-server/requirements.txt
+        pip install -r services/texture-generator/requirements.txt
+        pip install -r services/narrative-layer/requirements.txt
+        pip install -r services/web-dashboard/requirements.txt
+
+    - name: Run code quality checks
+      run: |
+        pip install flake8 pylint black isort mypy bandit safety
+        flake8 services/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        black --check services/
+        isort --check-only services/
+        bandit -r services/ -ll || true
+        safety check || true
+
+    - name: Run tests with coverage
+      run: |
+        pytest tests/ -v --cov=services --cov-report=xml --cov-report=term-missing --cov-fail-under=70
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 pylint black isort mypy
+
+    - name: Run flake8
+      run: |
+        flake8 services/ --count --statistics
+
+    - name: Run pylint
+      run: |
+        pylint services/ --exit-zero || true
+
+    - name: Check code formatting with black
+      run: |
+        black --check services/
+
+    - name: Check import sorting with isort
+      run: |
+        isort --check-only services/
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.10"
+
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+
+    - name: Run Bandit security scan
+      run: |
+        bandit -r services/ -f json -o bandit-report.json || true
+
+    - name: Check for known security vulnerabilities
+      run: |
+        safety check --json || true
+

@@ -1,0 +1,161 @@
+# DreamWalk .gitignore
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+secrets/
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+credentials/
+config/secrets.yaml
+config/secrets.yml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+cython_debug/
+
+# Virtual environments
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# PyTorch models
+*.pth
+*.pt
+*.ckpt
+*.h5
+*.hdf5
+models/checkpoints/*
+!models/checkpoints/.gitkeep
+models/exports/*
+!models/exports/.gitkeep
+
+# Datasets
+datasets/real/*
+!datasets/real/.gitkeep
+datasets/synthetic/*
+!datasets/synthetic/.gitkeep
+
+# Unity
+unity/DreamWalkVR/Library/
+unity/DreamWalkVR/Temp/
+unity/DreamWalkVR/Obj/
+unity/DreamWalkVR/Build/
+unity/DreamWalkVR/Builds/
+unity/DreamWalkVR/*.csproj
+unity/DreamWalkVR/*.unityproj
+unity/DreamWalkVR/*.sln
+unity/DreamWalkVR/*.suo
+unity/DreamWalkVR/*.user
+unity/DreamWalkVR/*.userprefs
+unity/DreamWalkVR/*.pidb
+unity/DreamWalkVR/*.booproj
+unity/DreamWalkVR/*.svd
+unity/DreamWalkVR/*.pdb
+unity/DreamWalkVR/*.mdb
+unity/DreamWalkVR/*.opendb
+unity/DreamWalkVR/*.VC.db
+unity/DreamWalkVR/Assets/Generated/*
+!unity/DreamWalkVR/Assets/Generated/.gitkeep
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Docker
+.dockerignore
+
+# Redis dumps
+dump.rdb
+
+# Kafka
+kafka-logs/
+
+# Monitoring
+monitoring/data/
+grafana/data/
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Test coverage
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Documentation builds
+docs/_build/
+docs/.doctrees/
+
+# Local configuration
+local_config.yaml
+local_config.yml
+local_settings.py
+

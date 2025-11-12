@@ -1,0 +1,38 @@
+[MASTER]
+ignore=venv,env,.venv,build,dist,*.egg-info,.mypy_cache,.pytest_cache,.tox,unity
+init-hook='import sys; sys.path.append(".")'
+
+[MESSAGES CONTROL]
+disable=
+    missing-docstring,
+    too-few-public-methods,
+    too-many-arguments,
+    too-many-instance-attributes,
+    too-many-locals,
+    import-error,
+    no-member,
+    unused-import
+
+[FORMAT]
+max-line-length=100
+indent-string='    '
+
+[DESIGN]
+max-args=10
+max-attributes=15
+max-locals=20
+max-branches=15
+max-statements=50
+max-parents=10
+max-public-methods=30
+min-public-methods=0
+
+[BASIC]
+good-names=i,j,k,ex,Run,_,id,db,pd,np,plt,os,sys,df,ctx,req,res,app,ws,logger
+
+[IMPORTS]
+ignored-modules=mne,pyOpenBCI,pylsl,torch,torchvision,transformers,sklearn
+
+[TYPECHECK]
+ignored-classes=optparse.Values,thread._local,_thread._local
+

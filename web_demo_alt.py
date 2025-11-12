@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-DreamWalk Web Dashboard Demo
-A simple web-based dashboard showing neural signal processing
+DreamWalk Simple Web Demo (Alternative Port)
+A lightweight web-based dashboard for DreamWalk neural interface
 """
 
 import asyncio
@@ -25,7 +25,6 @@ class NeuralState:
         self.dominance = 0.0
         self.motif_tags = ["calm", "peaceful"]
         self.eeg_data = []
-        self.time_points = []
     
     def update(self):
         """Update neural state with realistic changes"""
@@ -288,7 +287,7 @@ async def dashboard():
             let eegData = [];
             
             function connect() {
-                ws = new WebSocket('ws://localhost:8000/ws');
+                ws = new WebSocket('ws://localhost:8001/ws');
                 
                 ws.onopen = function() {
                     document.getElementById('connectionStatus').textContent = 'Connected';
@@ -404,7 +403,7 @@ async def health_check():
 
 if __name__ == "__main__":
     print("Starting DreamWalk Web Dashboard Demo...")
-    print("Open your browser to: http://localhost:8000")
+    print("Open your browser to: http://localhost:8001")
     print("Press Ctrl+C to stop")
     
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)

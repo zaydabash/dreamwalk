@@ -4,6 +4,8 @@
 
 The web demo is now running at: **http://localhost:8000**
 
+**Alternative**: If port 8000 is busy, you can also run: `python web_demo_alt.py` and use **http://localhost:8001**
+
 ### Steps to take a screenshot:
 
 1. **Open your web browser** and navigate to: `http://localhost:8000`
