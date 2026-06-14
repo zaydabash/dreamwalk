@@ -25,56 +25,56 @@ class NeuralState:
         self.dominance = 0.0
         self.motif_tags = ["calm", "peaceful"]
         self.eeg_data = []
-    
+
     def update(self):
         """Update neural state with realistic changes"""
         # Simulate gradual changes
         self.valence += random.uniform(-0.1, 0.1)
         self.arousal += random.uniform(-0.05, 0.05)
         self.dominance += random.uniform(-0.08, 0.08)
-        
+
         # Clamp values
         self.valence = max(-1.0, min(1.0, self.valence))
         self.arousal = max(0.0, min(1.0, self.arousal))
         self.dominance = max(-1.0, min(1.0, self.dominance))
-        
+
         # Update motifs
         motifs = []
         if self.valence > 0.3:
             motifs.append("positive")
         elif self.valence < -0.3:
             motifs.append("negative")
-        
+
         if self.arousal > 0.6:
             motifs.append("energetic")
         elif self.arousal < 0.3:
             motifs.append("calm")
-        
+
         if self.dominance > 0.3:
             motifs.append("confident")
         elif self.dominance < -0.3:
             motifs.append("submissive")
-        
+
         if not motifs:
             motifs = ["neutral", "balanced"]
-        
+
         self.motif_tags = motifs
-        
+
         # Generate EEG data
         t = np.linspace(0, 1, 10)
         alpha_amp = 20 * (1 - self.arousal)
         beta_amp = 15 * self.arousal
         theta_amp = 10 * abs(self.valence)
-        
+
         signal = (alpha_amp * np.sin(2 * np.pi * 10 * t) +
                  beta_amp * np.sin(2 * np.pi * 20 * t) +
                  theta_amp * np.sin(2 * np.pi * 6 * t) +
                  np.random.normal(0, 2, len(t)))
-        
+
         self.eeg_data.extend(signal.tolist())
         if len(self.eeg_data) > 100:
             self.eeg_data = self.eeg_data[-100:]
-    
+
     def get_mood(self):
         """Determine mood from neural state"""
         if self.valence > 0 and self.arousal > 0.5:
@@ -85,7 +85,7 @@ class NeuralState:
             return "Anxious and Agitated"
         else:
             return "Sad and Withdrawn"
-    
+
     def to_dict(self):
         """Convert to dictionary for JSON serialization"""
         return {
@@ -113,7 +113,7 @@ async def dashboard():
         <title>DreamWalk Neural Interface</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
         <style>
             :root {
                 color-scheme: dark;
@@ -128,8 +128,8 @@ async def dashboard():
                 --ok: #ededed;
                 --bad: #4a4a4a;
                 --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-                --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-                --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+                --font-sans: 'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
             }
 
             * {
@@ -155,10 +155,6 @@ async def dashboard():
             }
 
             .header {
-                display: flex;
-                justify-content: space-between;
-                align-items: flex-start;
-                gap: 1.5rem;
                 padding-bottom: 1.5rem;
                 margin-bottom: 2.5rem;
                 border-bottom: 1px solid var(--border);
@@ -177,44 +173,6 @@ async def dashboard():
                 font-size: 0.9rem;
             }
 
-            .connection-status {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-                padding: 0.4rem 0.75rem;
-                border: 1px solid var(--border);
-                border-radius: 6px;
-                font-family: var(--font-mono);
-                font-size: 0.7rem;
-                text-transform: uppercase;
-                letter-spacing: 0.1em;
-                color: var(--text-muted);
-                white-space: nowrap;
-            }
-
-            .status-dot {
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                background: var(--text-muted);
-            }
-
-            .connection-status.connected .status-dot {
-                background: var(--ok);
-                box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
-                animation: pulse 2s var(--ease-out) infinite;
-            }
-
-            .connection-status.disconnected .status-dot {
-                background: var(--bad);
-                box-shadow: none;
-            }
-
-            @keyframes pulse {
-                0%, 100% { opacity: 1; }
-                50% { opacity: 0.35; }
-            }
-
             .dashboard {
                 display: grid;
                 grid-template-columns: minmax(280px, 380px) 1fr;
@@ -225,9 +183,8 @@ async def dashboard():
             .panel {
                 background: var(--surface);
                 border: 1px solid var(--border);
-                border-radius: 12px;
                 padding: 1.75rem;
-                transition: transform 200ms var(--ease-out), border-color 200ms var(--ease-out);
+                transition: border-color 200ms var(--ease-out);
                 animation: fadeIn 500ms var(--ease-out) both;
             }
 
@@ -236,7 +193,6 @@ async def dashboard():
             }
 
             .panel:hover {
-                transform: translateY(-2px);
                 border-color: rgba(255, 255, 255, 0.18);
             }
 
@@ -254,6 +210,19 @@ async def dashboard():
             .metric {
                 padding: 0.85rem 0;
                 border-bottom: 1px solid var(--border);
+                animation: fadeIn 400ms var(--ease-out) both;
+            }
+
+            .metric:nth-of-type(1) {
+                animation-delay: 100ms;
+            }
+
+            .metric:nth-of-type(2) {
+                animation-delay: 150ms;
+            }
+
+            .metric:nth-of-type(3) {
+                animation-delay: 200ms;
             }
 
             .metric:last-of-type {
@@ -284,7 +253,6 @@ async def dashboard():
                 height: 4px;
                 margin-top: 0.6rem;
                 background: rgba(255, 255, 255, 0.06);
-                border-radius: 2px;
                 overflow: hidden;
             }
 
@@ -303,7 +271,6 @@ async def dashboard():
                 top: 0;
                 height: 100%;
                 background: var(--accent);
-                border-radius: 2px;
                 transition: left 400ms var(--ease-out), width 400ms var(--ease-out);
             }
 
@@ -325,12 +292,18 @@ async def dashboard():
                 display: inline-block;
                 margin: 0 0.4rem 0.4rem 0;
                 padding: 0.3rem 0.6rem;
-                border-radius: 4px;
                 background: var(--accent-dim);
                 color: var(--accent);
                 font-family: var(--font-mono);
                 font-size: 0.7rem;
                 letter-spacing: 0.04em;
+                transition: background 150ms ease;
+            }
+
+            @media (hover: hover) and (pointer: fine) {
+                .motif-tag:hover {
+                    background: rgba(255, 255, 255, 0.14);
+                }
             }
 
             .mood-section {
@@ -346,12 +319,17 @@ async def dashboard():
                 font-size: 1.3rem;
                 font-weight: 600;
                 letter-spacing: -0.01em;
+                transition: filter 200ms ease, opacity 200ms ease;
+            }
+
+            .mood-value.transitioning {
+                filter: blur(2px);
+                opacity: 0.4;
             }
 
             .chart-container {
                 height: 320px;
                 border: 1px solid var(--border);
-                border-radius: 8px;
                 background: var(--surface-2);
                 overflow: hidden;
             }
@@ -363,14 +341,41 @@ async def dashboard():
             }
 
             .status-bar {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
                 padding: 0.9rem;
                 border: 1px solid var(--border);
-                border-radius: 8px;
                 background: var(--surface);
-                text-align: center;
                 font-family: var(--font-mono);
                 font-size: 0.75rem;
                 color: var(--text-muted);
+            }
+
+            .live-dot {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: var(--text-muted);
+                flex-shrink: 0;
+            }
+
+            .live-dot.connected {
+                background: var(--ok);
+                box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+                animation: pulse 2s var(--ease-out) infinite;
+            }
+
+            .live-dot.disconnected {
+                background: var(--bad);
+                box-shadow: none;
+                animation: none;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.35; }
             }
 
             @keyframes fadeIn {
@@ -385,10 +390,11 @@ async def dashboard():
             }
 
             @media (prefers-reduced-motion: reduce) {
-                .panel {
+                .panel,
+                .metric {
                     animation: none;
                 }
-                .connection-status.connected .status-dot {
+                .live-dot.connected {
                     animation: none;
                 }
             }
@@ -397,14 +403,8 @@ async def dashboard():
     <body>
         <div class="container">
             <header class="header">
-                <div>
-                    <h1>DreamWalk Neural Interface</h1>
-                    <p>Real-time neural signal processing and dreamscape generation</p>
-                </div>
-                <div class="connection-status" id="connectionStatus">
-                    <span class="status-dot"></span>
-                    <span class="status-text">Connecting</span>
-                </div>
+                <h1>DreamWalk Neural Interface</h1>
+                <p>Real-time neural signal processing and dreamscape generation</p>
             </header>
 
             <main class="dashboard">
@@ -464,21 +464,29 @@ async def dashboard():
             </main>
 
             <div class="status-bar" id="status">
-                Demo running, generating neural data
+                <span class="live-dot" id="liveDot"></span>
+                <span id="statusText">Connecting</span>
             </div>
         </div>
 
         <script>
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
             let ws;
             let eegData = [];
+            let displayData = [];
+            let chartAnimFrom = [];
+            let chartAnimStart = 0;
+            const CHART_ANIM_MS = reduceMotion ? 0 : 450;
+
+            let prevValues = { valence: 0, arousal: 0.5, dominance: 0 };
+            let prevMood = 'Calm and Content';
 
             function connect() {
                 ws = new WebSocket('ws://localhost:8001/ws');
 
                 ws.onopen = function() {
-                    const el = document.getElementById('connectionStatus');
-                    el.className = 'connection-status connected';
-                    el.querySelector('.status-text').textContent = 'Connected';
+                    document.getElementById('liveDot').className = 'live-dot connected';
                 };
 
                 ws.onmessage = function(event) {
@@ -487,9 +495,8 @@ async def dashboard():
                 };
 
                 ws.onclose = function() {
-                    const el = document.getElementById('connectionStatus');
-                    el.className = 'connection-status disconnected';
-                    el.querySelector('.status-text').textContent = 'Disconnected';
+                    document.getElementById('liveDot').className = 'live-dot disconnected';
+                    document.getElementById('statusText').textContent = 'Disconnected, reconnecting';
                     setTimeout(connect, 3000);
                 };
             }
@@ -512,33 +519,66 @@ async def dashboard():
                 }
             }
 
+            function animateValue(el, from, to) {
+                if (reduceMotion) {
+                    el.textContent = to.toFixed(2);
+                    return;
+                }
+                const duration = 300;
+                const start = performance.now();
+                const ease = t => 1 - Math.pow(1 - t, 3);
+
+                function frame(now) {
+                    const t = Math.min(1, (now - start) / duration);
+                    el.textContent = (from + (to - from) * ease(t)).toFixed(2);
+                    if (t < 1) requestAnimationFrame(frame);
+                }
+                requestAnimationFrame(frame);
+            }
+
+            function updateMood(newMood) {
+                const el = document.getElementById('mood');
+                if (newMood === prevMood) return;
+                prevMood = newMood;
+
+                if (reduceMotion) {
+                    el.textContent = newMood;
+                    return;
+                }
+
+                el.classList.add('transitioning');
+                setTimeout(() => {
+                    el.textContent = newMood;
+                    el.classList.remove('transitioning');
+                }, 150);
+            }
+
             function updateDashboard(data) {
-                // Update neural state
-                document.getElementById('valence').textContent = data.valence.toFixed(2);
-                document.getElementById('arousal').textContent = data.arousal.toFixed(2);
-                document.getElementById('dominance').textContent = data.dominance.toFixed(2);
-                document.getElementById('mood').textContent = data.mood;
+                animateValue(document.getElementById('valence'), prevValues.valence, data.valence);
+                animateValue(document.getElementById('arousal'), prevValues.arousal, data.arousal);
+                animateValue(document.getElementById('dominance'), prevValues.dominance, data.dominance);
+                prevValues = { valence: data.valence, arousal: data.arousal, dominance: data.dominance };
 
                 setBar('valence-bar', data.valence, true);
                 setBar('arousal-bar', data.arousal, false);
                 setBar('dominance-bar', data.dominance, true);
 
-                // Update motifs
+                updateMood(data.mood);
+
                 const motifsDiv = document.getElementById('motifs');
                 motifsDiv.innerHTML = data.motif_tags.map(tag =>
                     `<span class="motif-tag">${tag}</span>`
                 ).join('');
 
-                // Update EEG chart
+                chartAnimFrom = (displayData.length === data.eeg_data.length) ? displayData.slice() : data.eeg_data.slice();
                 eegData = data.eeg_data;
-                updateChart();
+                chartAnimStart = performance.now();
 
-                // Update status
-                document.getElementById('status').textContent =
-                    `Last update: ${new Date().toLocaleTimeString()} - ${data.mood}`;
+                document.getElementById('statusText').textContent =
+                    `Last update ${new Date().toLocaleTimeString()}, ${data.mood}`;
             }
 
-            function updateChart() {
+            function drawChart(data) {
                 const canvas = document.getElementById('eegChart');
                 const ctx = canvas.getContext('2d');
                 const width = canvas.width = canvas.clientWidth;
@@ -556,20 +596,20 @@ async def dashboard():
                     ctx.stroke();
                 }
 
-                if (eegData.length > 1) {
+                if (data.length > 1) {
                     ctx.strokeStyle = '#ededed';
                     ctx.lineWidth = 2;
                     ctx.shadowColor = 'rgba(255, 255, 255, 0.25)';
                     ctx.shadowBlur = 8;
                     ctx.beginPath();
 
-                    const stepX = width / (eegData.length - 1);
+                    const stepX = width / (data.length - 1);
                     const centerY = height / 2;
                     const scaleY = height / 120; // Scale for +/-60 range
 
-                    for (let i = 0; i < eegData.length; i++) {
+                    for (let i = 0; i < data.length; i++) {
                         const x = i * stepX;
-                        const y = centerY - (eegData[i] * scaleY);
+                        const y = centerY - (data[i] * scaleY);
 
                         if (i === 0) {
                             ctx.moveTo(x, y);
@@ -583,11 +623,24 @@ async def dashboard():
                 }
             }
 
+            function renderChart() {
+                if (CHART_ANIM_MS === 0 || chartAnimFrom.length !== eegData.length) {
+                    displayData = eegData;
+                } else {
+                    const t = Math.min(1, (performance.now() - chartAnimStart) / CHART_ANIM_MS);
+                    const eased = 1 - Math.pow(1 - t, 3);
+                    displayData = eegData.map((v, i) => chartAnimFrom[i] + (v - chartAnimFrom[i]) * eased);
+                }
+                drawChart(displayData);
+                requestAnimationFrame(renderChart);
+            }
+
             // Initialize
             connect();
+            requestAnimationFrame(renderChart);
 
             // Handle window resize
-            window.addEventListener('resize', updateChart);
+            window.addEventListener('resize', () => drawChart(displayData));
         </script>
     </body>
     </html>
@@ -597,19 +650,19 @@ async def dashboard():
 async def websocket_endpoint(websocket: WebSocket):
     """WebSocket endpoint for real-time data"""
     await websocket.accept()
-    
+
     try:
         while True:
             # Update neural state
             neural_state.update()
-            
+
             # Send data to client
             data = neural_state.to_dict()
             await websocket.send_text(json.dumps(data))
-            
+
             # Wait 1 second before next update
             await asyncio.sleep(1)
-            
+
     except Exception as e:
         print(f"WebSocket error: {e}")
 
@@ -628,5 +681,5 @@ if __name__ == "__main__":
     print("Starting DreamWalk Web Dashboard Demo...")
     print("Open your browser to: http://localhost:8001")
     print("Press Ctrl+C to stop")
-    
+
     uvicorn.run(app, host="0.0.0.0", port=8001)
