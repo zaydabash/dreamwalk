@@ -32,7 +32,7 @@ This document summarizes the code quality and security improvements made to the 
 ### Testing Infrastructure
 - **pytest**: Testing framework
   - Configuration: `pytest.ini`
-  - Test coverage: 70%+ (target: 95%)
+  - Test coverage: ~52% (enforced minimum: 50%, target: 95%)
   - Coverage reporting: HTML, XML, terminal
 
 - **pytest-cov**: Coverage reporting
@@ -89,7 +89,7 @@ tests/
   - String sanitization
   - Rate limiting (in-memory for development)
   - Client IP extraction
-  - Token verification (placeholder for production)
+  - Wired into `main.py` via a rate-limit middleware and per-endpoint session ID validation
 
 ### Environment Configuration
 - **env.example**: Updated with security warnings
@@ -132,7 +132,7 @@ tests/
 - Coverage reporting:
   - pytest-cov
   - Codecov integration
-- Coverage target: 70%+ (fails if below)
+- Coverage target: 50%+ (fails if below)
 
 #### Security Workflow (`.github/workflows/security.yml`)
 - Weekly security scans
@@ -145,7 +145,7 @@ tests/
 
 ### README.md
 - Added "Testing" section with:
-  - Test coverage information (70%+)
+  - Test coverage information (~52%, enforced minimum 50%)
   - Test running instructions
   - Test structure overview
   - CI/CD information

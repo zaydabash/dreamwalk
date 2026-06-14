@@ -10,18 +10,19 @@ import json
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import structlog
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import redis.asyncio as redis
 import httpx
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 
-from .models.server_models import (
-    StreamRequest, StreamResponse, WorldStateUpdate, SessionInfo, 
+from models.server_models import (
+    StreamRequest, StreamResponse, WorldStateUpdate, SessionInfo,
     ConnectionManager, ServerConfig
 )
+from utils.security import check_rate_limit, get_client_ip, validate_session_id
 
 # Configure structured logging
 structlog.configure(
@@ -81,6 +82,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    """Reject requests once a client IP exceeds the request rate limit"""
+    client_ip = get_client_ip(request)
+    if not check_rate_limit(client_ip):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Rate limit exceeded, please try again later"}
+        )
+    return await call_next(request)
 
 # Global state
 redis_client: Optional[redis.Redis] = None
@@ -148,8 +161,8 @@ async def metrics():
 async def start_session(request: StreamRequest):
     """Start a new streaming session"""
     try:
-        session_id = request.session_id
-        
+        session_id = validate_session_id(request.session_id)
+
         # Check if session already exists
         if session_id in connection_manager.active_connections:
             raise HTTPException(status_code=400, detail="Session already active")
@@ -191,6 +204,8 @@ async def start_session(request: StreamRequest):
 async def stop_session(session_id: str):
     """Stop a streaming session"""
     try:
+        session_id = validate_session_id(session_id)
+
         # Disconnect WebSocket if active
         if session_id in connection_manager.active_connections:
             await connection_manager.disconnect(session_id)
@@ -223,6 +238,8 @@ async def stop_session(session_id: str):
 async def get_session_status(session_id: str):
     """Get session status"""
     try:
+        session_id = validate_session_id(session_id)
+
         session_data = await redis_client.get(f"session:{session_id}")
         if not session_data:
             raise HTTPException(status_code=404, detail="Session not found")
@@ -271,6 +288,12 @@ async def list_sessions():
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str):
     """WebSocket endpoint for real-time streaming"""
+    try:
+        session_id = validate_session_id(session_id)
+    except HTTPException as e:
+        await websocket.close(code=1008, reason=str(e.detail))
+        return
+
     await connection_manager.connect(websocket, session_id)
     
     try:
@@ -317,13 +340,15 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str):
     except Exception as e:
         logger.error("WebSocket connection error", error=str(e), session_id=session_id)
     finally:
-        connection_manager.disconnect(session_id)
+        await connection_manager.disconnect(session_id)
 
 
 @app.post("/trigger/world-update/{session_id}")
 async def trigger_world_update(session_id: str, background_tasks: BackgroundTasks):
     """Manually trigger world state update"""
     try:
+        session_id = validate_session_id(session_id)
+
         background_tasks.add_task(_trigger_world_update, session_id)
         
         return {
@@ -348,12 +373,12 @@ async def _start_signal_processing(session_id: str, request: StreamRequest):
         }
         
         # Start stream with signal processor
-        async with http_client.post(
+        response = await http_client.post(
             f"{SIGNAL_PROCESSOR_URL}/streams/start",
             json=stream_config
-        ) as response:
-            if response.status_code != 200:
-                raise Exception(f"Failed to start signal processing: {response.text}")
+        )
+        if response.status_code != 200:
+            raise Exception(f"Failed to start signal processing: {response.text}")
         
         # Start background processing loop
         asyncio.create_task(_process_signal_stream(session_id))
@@ -429,22 +454,22 @@ async def _decode_to_world_state(session_id: str, features: Dict[str, Any]) -> W
                 "timestamp": datetime.utcnow().isoformat()
             }
             
-            async with http_client.post(
+            response = await http_client.post(
                 f"{NEURAL_DECODER_URL}/decode",
                 json=decoder_request
-            ) as response:
-                if response.status_code == 200:
-                    decoder_response = response.json()
-                    world_state_data = decoder_response["world_state"]
-                    
-                    SERVICE_CALLS.labels(
-                        service_name="neural_decoder",
-                        endpoint="decode",
-                        status="success"
-                    ).inc()
-                    
-                else:
-                    raise Exception(f"Neural decoder failed: {response.text}")
+            )
+            if response.status_code == 200:
+                decoder_response = response.json()
+                world_state_data = decoder_response["world_state"]
+
+                SERVICE_CALLS.labels(
+                    service_name="neural_decoder",
+                    endpoint="decode",
+                    status="success"
+                ).inc()
+
+            else:
+                raise Exception(f"Neural decoder failed: {response.text}")
         
         # Generate textures if needed
         if config.enable_texture_generation:
@@ -455,7 +480,11 @@ async def _decode_to_world_state(session_id: str, features: Dict[str, Any]) -> W
             narrative = await _generate_narrative(session_id, world_state_data)
             world_state_data["narrative"] = narrative
         
-        return WorldStateUpdate(**world_state_data)
+        return WorldStateUpdate(
+            session_id=world_state_data.get("session_id", session_id),
+            timestamp=datetime.utcnow(),
+            world_state=world_state_data
+        )
         
     except Exception as e:
         logger.error("World state decoding failed", error=str(e), session_id=session_id)
@@ -495,23 +524,23 @@ async def _generate_textures(session_id: str, world_state: Dict[str, Any]):
             "texture_types": ["skybox", "terrain", "ambient"]
         }
         
-        async with http_client.post(
+        response = await http_client.post(
             f"{TEXTURE_GENERATOR_URL}/generate",
             json=texture_request,
             timeout=30.0
-        ) as response:
-            if response.status_code == 200:
-                SERVICE_CALLS.labels(
-                    service_name="texture_generator",
-                    endpoint="generate",
-                    status="success"
-                ).inc()
-            else:
-                SERVICE_CALLS.labels(
-                    service_name="texture_generator",
-                    endpoint="generate",
-                    status="error"
-                ).inc()
+        )
+        if response.status_code == 200:
+            SERVICE_CALLS.labels(
+                service_name="texture_generator",
+                endpoint="generate",
+                status="success"
+            ).inc()
+        else:
+            SERVICE_CALLS.labels(
+                service_name="texture_generator",
+                endpoint="generate",
+                status="error"
+            ).inc()
                 
     except Exception as e:
         logger.error("Texture generation failed", error=str(e), session_id=session_id)
@@ -525,32 +554,44 @@ async def _generate_textures(session_id: str, world_state: Dict[str, Any]):
 async def _generate_narrative(session_id: str, world_state: Dict[str, Any]) -> str:
     """Generate narrative for world state"""
     try:
+        emotional_state = world_state.get("emotional_state", {})
+        motif_tags = [
+            motif.get("motif_type")
+            for motif in world_state.get("motifs", [])
+            if motif.get("motif_type")
+        ]
+
         narrative_request = {
-            "session_id": session_id,
-            "world_state": world_state,
-            "narrative_type": "ambient"
+            "neural_state": {
+                "valence": emotional_state.get("valence", 0.0),
+                "arousal": emotional_state.get("arousal", 0.0),
+                "dominance": emotional_state.get("dominance", 0.0),
+                "motif_tags": motif_tags,
+                "latent_vector": world_state.get("semantic_embedding", []),
+            },
+            "length": "short"
         }
-        
-        async with http_client.post(
+
+        response = await http_client.post(
             f"{NARRATIVE_LAYER_URL}/generate",
             json=narrative_request,
             timeout=10.0
-        ) as response:
-            if response.status_code == 200:
-                narrative_data = response.json()
-                SERVICE_CALLS.labels(
-                    service_name="narrative_layer",
-                    endpoint="generate",
-                    status="success"
-                ).inc()
-                return narrative_data.get("narrative", "")
-            else:
-                SERVICE_CALLS.labels(
-                    service_name="narrative_layer",
-                    endpoint="generate",
-                    status="error"
-                ).inc()
-                return ""
+        )
+        if response.status_code == 200:
+            narrative_data = response.json()
+            SERVICE_CALLS.labels(
+                service_name="narrative_layer",
+                endpoint="generate",
+                status="success"
+            ).inc()
+            return narrative_data.get("ambient_text", "")
+        else:
+            SERVICE_CALLS.labels(
+                service_name="narrative_layer",
+                endpoint="generate",
+                status="error"
+            ).inc()
+            return ""
                 
     except Exception as e:
         logger.error("Narrative generation failed", error=str(e), session_id=session_id)
@@ -613,21 +654,21 @@ async def _set_manual_world_state(session_id: str, world_state_data: Dict[str, A
 async def _stop_signal_processing(session_id: str):
     """Stop signal processing for a session"""
     try:
-        async with http_client.post(
+        response = await http_client.post(
             f"{SIGNAL_PROCESSOR_URL}/streams/stop/{session_id}"
-        ) as response:
-            if response.status_code == 200:
-                SERVICE_CALLS.labels(
-                    service_name="signal_processor",
-                    endpoint="stop_stream",
-                    status="success"
-                ).inc()
-            else:
-                SERVICE_CALLS.labels(
-                    service_name="signal_processor",
-                    endpoint="stop_stream",
-                    status="error"
-                ).inc()
+        )
+        if response.status_code == 200:
+            SERVICE_CALLS.labels(
+                service_name="signal_processor",
+                endpoint="stop_stream",
+                status="success"
+            ).inc()
+        else:
+            SERVICE_CALLS.labels(
+                service_name="signal_processor",
+                endpoint="stop_stream",
+                status="error"
+            ).inc()
                 
     except Exception as e:
         logger.error("Failed to stop signal processing", error=str(e), session_id=session_id)
@@ -636,8 +677,8 @@ async def _stop_signal_processing(session_id: str):
 async def _check_service_health(service_url: str) -> bool:
     """Check if a service is healthy"""
     try:
-        async with http_client.get(f"{service_url}/health", timeout=5.0) as response:
-            return response.status_code == 200
+        response = await http_client.get(f"{service_url}/health", timeout=5.0)
+        return response.status_code == 200
     except Exception:
         return False
 

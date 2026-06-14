@@ -22,7 +22,7 @@ import numpy as np
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from fastapi.responses import Response
 
-from .models.dashboard_models import (
+from models.dashboard_models import (
     DashboardData, SessionMetrics, ServiceStatus, WorldStateHistory,
     EEGSignalData, EmotionData, MotifData
 )
@@ -154,11 +154,11 @@ async def get_sessions():
     try:
         DATA_REQUESTS.labels(data_type="sessions").inc()
         
-        async with http_client.get(f"{REALTIME_SERVER_URL}/sessions") as response:
-            if response.status_code == 200:
-                return response.json()
-            else:
-                raise HTTPException(status_code=response.status_code, detail="Failed to get sessions")
+        response = await http_client.get(f"{REALTIME_SERVER_URL}/sessions")
+        if response.status_code == 200:
+            return response.json()
+        else:
+            raise HTTPException(status_code=response.status_code, detail="Failed to get sessions")
                 
     except Exception as e:
         logger.error("Failed to get sessions", error=str(e))
@@ -188,8 +188,8 @@ async def get_session_metrics(session_id: str, duration: int = 300):
             duration_seconds=duration,
             world_state_count=len(world_states),
             eeg_data_points=len(eeg_data),
-            avg_emotion_valence=np.mean([ws.emotional_state.valence for ws in world_states]) if world_states else 0.0,
-            avg_emotion_arousal=np.mean([ws.emotional_state.arousal for ws in world_states]) if world_states else 0.0,
+            avg_emotion_valence=float(np.mean([ws.get("emotional_state", {}).get("valence", 0.0) for ws in world_states])) if world_states else 0.0,
+            avg_emotion_arousal=float(np.mean([ws.get("emotional_state", {}).get("arousal", 0.0) for ws in world_states])) if world_states else 0.0,
             dominant_biome=_get_dominant_biome(world_states),
             active_motifs=_get_active_motifs(world_states)
         )
@@ -220,14 +220,14 @@ async def get_services_status():
         
         for service_name, url in service_urls.items():
             try:
-                async with http_client.get(f"{url}/health", timeout=5.0) as response:
-                    services[service_name] = ServiceStatus(
-                        name=service_name,
-                        url=url,
-                        status="healthy" if response.status_code == 200 else "unhealthy",
-                        response_time_ms=0,  # Could measure this
-                        last_check=datetime.utcnow().isoformat()
-                    )
+                response = await http_client.get(f"{url}/health", timeout=5.0)
+                services[service_name] = ServiceStatus(
+                    name=service_name,
+                    url=url,
+                    status="healthy" if response.status_code == 200 else "unhealthy",
+                    response_time_ms=0,  # Could measure this
+                    last_check=datetime.utcnow().isoformat()
+                )
             except Exception as e:
                 services[service_name] = ServiceStatus(
                     name=service_name,
@@ -236,7 +236,7 @@ async def get_services_status():
                     error=str(e),
                     last_check=datetime.utcnow().isoformat()
                 )
-        
+
         return {"services": services}
         
     except Exception as e:
@@ -368,14 +368,14 @@ async def _get_services_status() -> Dict[str, ServiceStatus]:
     
     for service_name, url in service_urls.items():
         try:
-            async with http_client.get(f"{url}/health", timeout=5.0) as response:
-                services[service_name] = ServiceStatus(
-                    name=service_name,
-                    url=url,
-                    status="healthy" if response.status_code == 200 else "unhealthy",
-                    response_time_ms=0,
-                    last_check=datetime.utcnow().isoformat()
-                )
+            response = await http_client.get(f"{url}/health", timeout=5.0)
+            services[service_name] = ServiceStatus(
+                name=service_name,
+                url=url,
+                status="healthy" if response.status_code == 200 else "unhealthy",
+                response_time_ms=0,
+                last_check=datetime.utcnow().isoformat()
+            )
         except Exception as e:
             services[service_name] = ServiceStatus(
                 name=service_name,
@@ -384,7 +384,7 @@ async def _get_services_status() -> Dict[str, ServiceStatus]:
                 error=str(e),
                 last_check=datetime.utcnow().isoformat()
             )
-    
+
     return services
 
 

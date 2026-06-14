@@ -5,6 +5,7 @@ Generates procedural textures and skyboxes using Stable Diffusion for world gene
 """
 
 import asyncio
+import json
 import logging
 import os
 import uuid
@@ -23,7 +24,7 @@ from diffusers import StableDiffusionPipeline, ControlNetModel
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from fastapi.responses import Response
 
-from .models.texture_models import (
+from models.texture_models import (
     TextureRequest, TextureResponse, TextureGenerationConfig,
     BiomeConfig, StylePreset
 )
@@ -500,5 +501,4 @@ async def _update_generation_status(generation_id: str, status: str, message: st
 
 if __name__ == "__main__":
     import uvicorn
-    import json
     uvicorn.run(app, host="0.0.0.0", port=8005)

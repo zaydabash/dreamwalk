@@ -6,9 +6,10 @@ DreamWalk maintains high code quality standards through automated testing, linti
 
 ## Test Coverage
 
-**Current Coverage: 70%+ (Target: 95%)**
+**Current Coverage: ~52% (enforced minimum: 50%, Target: 95%)**
 
-The project uses pytest for testing with comprehensive unit and integration tests.
+The project uses pytest for testing with unit and integration tests. Coverage
+is still well below the long-term target; see Coverage Goals below.
 
 ### Running Tests
 
@@ -40,7 +41,8 @@ tests/
 │   ├── neural-decoder/
 │   │   └── test_decoder.py
 │   ├── realtime-server/
-│   │   └── test_server.py
+│   │   ├── test_server.py
+│   │   └── test_security.py
 │   ├── texture-generator/
 │   ├── narrative-layer/
 │   └── web-dashboard/
@@ -65,14 +67,13 @@ tests/
 **Example Test:**
 ```python
 import pytest
-from unittest.mock import AsyncMock
 
 @pytest.mark.unit
 class TestEEGProcessor:
-    def test_bandpass_filtering(self):
-        """Test bandpass filtering of EEG signals"""
-        # Test implementation
-        assert True
+    def test_apply_bandpass_filter_preserves_shape(self, eeg_config, synthetic_signal):
+        processor = EEGProcessor(eeg_config)
+        filtered = processor._apply_bandpass_filter(synthetic_signal.data)
+        assert filtered.shape == synthetic_signal.data.shape
 ```
 
 ## Code Quality Tools

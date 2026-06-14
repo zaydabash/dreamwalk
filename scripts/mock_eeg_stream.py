@@ -13,16 +13,19 @@ import os
 from datetime import datetime
 from typing import Dict, Any, Optional
 
-# Add project root to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add the signal-processor service directory to the path so we can reuse
+# its mock streamer and models (the directory uses a hyphen, so it cannot
+# be imported as a regular dotted package).
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(PROJECT_ROOT, "services", "signal-processor"))
 
 import httpx
 import redis.asyncio as redis
 import json
 import numpy as np
 import structlog
-from services.signal_processor.streamers.mock_streamer import MockStreamer
-from services.signal_processor.models.signal_models import SignalData, EEGConfig
+from streamers.mock_streamer import MockStreamer
+from models.signal_models import SignalData, EEGConfig
 
 
 # Configure logging
@@ -144,15 +147,15 @@ class MockEEGStreamer:
                 }
             }
             
-            async with self.http_client.post(
+            response = await self.http_client.post(
                 f"{self.realtime_server_url}/sessions/start",
                 json=session_request
-            ) as response:
-                if response.status_code == 200:
-                    result = response.json()
-                    logger.info("Session started", result=result)
-                else:
-                    raise Exception(f"Failed to start session: {response.text}")
+            )
+            if response.status_code == 200:
+                result = response.json()
+                logger.info("Session started", result=result)
+            else:
+                raise Exception(f"Failed to start session: {response.text}")
                     
         except Exception as e:
             logger.error("Failed to start session", error=str(e))
@@ -161,14 +164,14 @@ class MockEEGStreamer:
     async def _stop_session(self):
         """Stop the session"""
         try:
-            async with self.http_client.post(
+            response = await self.http_client.post(
                 f"{self.realtime_server_url}/sessions/stop/{self.session_id}"
-            ) as response:
-                if response.status_code == 200:
-                    result = response.json()
-                    logger.info("Session stopped", result=result)
-                else:
-                    logger.warning("Failed to stop session properly", status_code=response.status_code)
+            )
+            if response.status_code == 200:
+                result = response.json()
+                logger.info("Session stopped", result=result)
+            else:
+                logger.warning("Failed to stop session properly", status_code=response.status_code)
                     
         except Exception as e:
             logger.error("Failed to stop session", error=str(e))
@@ -207,13 +210,13 @@ class MockEEGStreamer:
             }
             
             # Send to signal processor
-            async with self.http_client.post(
+            response = await self.http_client.post(
                 f"{self.signal_processor_url}/process/batch",
                 params={"signal_type": "eeg"},
                 json=signal_dict
-            ) as response:
-                if response.status_code != 200:
-                    logger.warning("Signal processing failed", status_code=response.status_code)
+            )
+            if response.status_code != 200:
+                logger.warning("Signal processing failed", status_code=response.status_code)
                     
         except Exception as e:
             logger.error("Failed to send signal data", error=str(e))

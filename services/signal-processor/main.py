@@ -20,12 +20,13 @@ import redis.asyncio as redis
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from fastapi.responses import Response
 
-from .processors.eeg_processor import EEGProcessor
-from .processors.fmri_processor import fMRIProcessor
-from .feature_extractors.neural_features import NeuralFeatureExtractor
-from .streamers.lsl_streamer import LSLStreamer
-from .streamers.mock_streamer import MockStreamer
-from .models.signal_models import SignalData, ProcessedFeatures, EEGConfig, fMRIConfig
+from processors.eeg_processor import EEGProcessor
+from processors.fmri_processor import fMRIProcessor
+from feature_extractors.neural_features import NeuralFeatureExtractor
+from streamers.lsl_streamer import LSLStreamer
+from streamers.mock_streamer import MockStreamer
+from streamers.replay_streamer import ReplayStreamer
+from models.signal_models import SignalData, ProcessedFeatures, EEGConfig, fMRIConfig
 
 # Configure structured logging
 structlog.configure(
@@ -96,7 +97,7 @@ active_streams: Dict[str, Dict] = {}
 
 class StreamConfig(BaseModel):
     """Configuration for signal streaming"""
-    signal_type: str = Field(..., description="Type of signal: eeg, fmri, or mock")
+    signal_type: str = Field(..., description="Type of signal: eeg, fmri, mock, or replay")
     config: Dict = Field(default_factory=dict, description="Signal-specific configuration")
     stream_id: str = Field(..., description="Unique identifier for this stream")
 
@@ -241,6 +242,8 @@ async def process_stream_websocket(websocket: WebSocket, stream_id: str):
         # Initialize appropriate streamer
         if signal_type == "mock":
             streamer = MockStreamer(config=stream_config["config"])
+        elif signal_type == "replay":
+            streamer = ReplayStreamer(config=stream_config["config"])
         elif signal_type == "eeg":
             streamer = LSLStreamer(config=stream_config["config"])
         elif signal_type == "fmri":

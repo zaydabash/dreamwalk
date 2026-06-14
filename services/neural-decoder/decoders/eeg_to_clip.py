@@ -15,9 +15,8 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
-import clip
 
-from ..models.decoder_models import DecoderConfig, TrainingData
+from models.decoder_models import DecoderConfig, TrainingData
 
 
 class EEGToCLIPDataset(Dataset):
@@ -141,7 +140,7 @@ class EEGToCLIPDecoder:
         self.device = self._get_device()
         
         # Model parameters
-        self.input_dim = 88  # Calculated from feature extraction
+        self.input_dim = 100  # 5 bands * 8ch + 3 hjorth * 8ch + 4 scalars + 4 summary stats * 8ch
         self.output_dim = 512  # CLIP embedding dimension
         self.is_trained = False
     

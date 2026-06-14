@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DreamWalk Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <header class="header">
+        <h1>DreamWalk Dashboard</h1>
+        <span id="connection-status" class="status-badge status-unknown">connecting...</span>
+    </header>
+
+    <main class="grid">
+        <section class="card">
+            <h2>Overview</h2>
+            <dl class="stats">
+                <dt>Active sessions</dt>
+                <dd id="active-sessions">-</dd>
+                <dt>Last updated</dt>
+                <dd id="last-updated">-</dd>
+            </dl>
+        </section>
+
+        <section class="card">
+            <h2>Service Health</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Status</th>
+                        <th>URL</th>
+                    </tr>
+                </thead>
+                <tbody id="services-table-body">
+                    <tr><td colspan="3">Loading...</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="card card-wide">
+            <h2>Recent World States</h2>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Session</th>
+                        <th>Biome</th>
+                        <th>Lighting</th>
+                        <th>Weather</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="world-states-table-body">
+                    <tr><td colspan="5">Loading...</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="card card-wide">
+            <h2>Live Updates</h2>
+            <ul id="live-updates" class="live-log"></ul>
+        </section>
+    </main>
+
+    <script src="/static/dashboard.js"></script>
+</body>
+</html>

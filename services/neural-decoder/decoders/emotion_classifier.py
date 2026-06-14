@@ -7,7 +7,7 @@ Classifies emotional states from neural features.
 import asyncio
 import logging
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn as nn
@@ -17,7 +17,7 @@ from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score
 
-from ..models.decoder_models import EmotionalState, DecoderConfig, TrainingData
+from models.decoder_models import EmotionalState, DecoderConfig, TrainingData
 
 
 class EmotionDataset(Dataset):
@@ -191,7 +191,7 @@ class EmotionClassifier:
         self.device = self._get_device()
         
         # Model parameters
-        self.input_dim = 88  # Calculated from feature extraction
+        self.input_dim = 100  # 5 bands * 8ch + 3 hjorth * 8ch + 4 scalars + 4 summary stats * 8ch
         self.supported_emotions = [
             'neutral', 'happy', 'sad', 'angry', 'fearful', 'surprised', 'disgusted',
             'relaxed', 'stressed', 'excited', 'calm', 'focused', 'confused'

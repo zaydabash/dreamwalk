@@ -16,7 +16,7 @@ from mne.preprocessing import ICA
 from mne.filter import filter_data
 from mne.channels import make_standard_montage
 
-from ..models.signal_models import SignalData, ProcessedFeatures, EEGConfig, ProcessingConfig
+from models.signal_models import SignalData, ProcessedFeatures, EEGConfig, ProcessingConfig
 
 
 class EEGProcessor:

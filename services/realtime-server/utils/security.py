@@ -2,9 +2,8 @@
 Security utilities for input validation and rate limiting
 """
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 from fastapi import HTTPException, Request
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import time
 from collections import defaultdict
 
@@ -157,36 +156,6 @@ def get_client_ip(request: Request) -> str:
     # Fall back to direct client IP
     if request.client:
         return request.client.host
-    
+
     return "unknown"
-
-
-# Security bearer token (placeholder for future authentication)
-security = HTTPBearer(auto_error=False)
-
-
-async def verify_token(credentials: Optional[HTTPAuthorizationCredentials] = None) -> Optional[str]:
-    """
-    Verify authentication token.
-    
-    Args:
-        credentials: HTTP bearer credentials
-        
-    Returns:
-        User ID if token is valid, None otherwise
-        
-    Note:
-        This is a placeholder. Implement proper token verification in production.
-    """
-    if credentials is None:
-        return None
-    
-    # TODO: Implement proper token verification
-    # For development, accept any token
-    # In production, verify JWT token or API key
-    token = credentials.credentials
-    if token:
-        return "user"  # Placeholder
-    
-    return None
 

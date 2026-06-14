@@ -7,10 +7,11 @@ Maps neural features to CLIP embeddings and emotional states for world generatio
 import asyncio
 import logging
 import os
+from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 import torch
-import clip
+from transformers import CLIPModel, CLIPProcessor
 from sentence_transformers import SentenceTransformer
 import structlog
 from fastapi import FastAPI, HTTPException
@@ -20,14 +21,14 @@ import redis.asyncio as redis
 from prometheus_client import Counter, Histogram, Gauge, generate_latest
 from fastapi.responses import Response
 
-from .models.decoder_models import (
-    DecoderRequest, DecoderResponse, EmotionalState, NeuralMotif, 
+from models.decoder_models import (
+    DecoderRequest, DecoderResponse, EmotionalState, NeuralMotif,
     WorldState, DecoderConfig
 )
-from .decoders.eeg_to_clip import EEGToCLIPDecoder
-from .decoders.emotion_classifier import EmotionClassifier
-from .decoders.motif_detector import MotifDetector
-from .synthetic_data.generator import SyntheticDataGenerator
+from decoders.eeg_to_clip import EEGToCLIPDecoder
+from decoders.emotion_classifier import EmotionClassifier
+from decoders.motif_detector import MotifDetector
+from synthetic_data.generator import SyntheticDataGenerator
 
 # Configure structured logging
 structlog.configure(
@@ -119,7 +120,8 @@ async def startup_event():
     # Initialize CLIP model
     try:
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        clip_model, clip_preprocess = clip.load("ViT-B/32", device=device)
+        clip_model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32").to(device)
+        clip_processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
         logger.info("CLIP model loaded successfully", device=device)
     except Exception as e:
         logger.error("Failed to load CLIP model", error=str(e))
@@ -213,7 +215,7 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "timestamp": "2024-01-01T00:00:00Z",
+        "timestamp": datetime.utcnow().isoformat(),
         "models_loaded": {
             "eeg_decoder": eeg_decoder is not None,
             "emotion_classifier": emotion_classifier is not None,
@@ -269,7 +271,7 @@ async def decode_neural_features(request: DecoderRequest):
             
             return DecoderResponse(
                 session_id=request.session_id,
-                timestamp="2024-01-01T00:00:00Z",
+                timestamp=datetime.utcnow(),
                 world_state=world_state,
                 processing_time_ms=0.0  # Will be filled by metrics
             )
@@ -354,7 +356,7 @@ async def get_models_status():
         },
         "clip_model": {
             "loaded": clip_model is not None,
-            "model_name": "ViT-B/32",
+            "model_name": "openai/clip-vit-base-patch32",
             "embedding_dim": 512
         }
     }
@@ -363,6 +365,7 @@ async def get_models_status():
 @app.post("/models/retrain")
 async def retrain_models():
     """Retrain models with latest data"""
+    global synthetic_generator
     try:
         if synthetic_generator is None:
             synthetic_generator = SyntheticDataGenerator()

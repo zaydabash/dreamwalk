@@ -12,7 +12,7 @@ from typing import AsyncGenerator, Dict, Any, List, Optional
 from datetime import datetime
 import random
 
-from ..models.signal_models import SignalData, EEGConfig
+from models.signal_models import SignalData, EEGConfig
 
 
 class MockStreamer:

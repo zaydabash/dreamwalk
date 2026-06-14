@@ -85,6 +85,11 @@ models/exports/*
 # Datasets
 datasets/real/*
 !datasets/real/.gitkeep
+!datasets/real/SOURCES.md
+!datasets/real/eeg/
+!datasets/real/eeg/**
+!datasets/real/fmri/
+!datasets/real/fmri/**
 datasets/synthetic/*
 !datasets/synthetic/.gitkeep
 
@@ -159,3 +164,4 @@ local_config.yaml
 local_config.yml
 local_settings.py
 
+.gstack/

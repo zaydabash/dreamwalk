@@ -14,7 +14,7 @@ from scipy.stats import skew, kurtosis
 from scipy.signal import welch, coherence
 from sklearn.preprocessing import StandardScaler
 
-from ..models.signal_models import SignalData, ProcessedFeatures, ProcessingConfig
+from models.signal_models import SignalData, ProcessedFeatures, ProcessingConfig
 
 
 class NeuralFeatureExtractor:
@@ -112,11 +112,15 @@ class NeuralFeatureExtractor:
             # This would be implemented for batch processing
             # For now, process single window
             features = await self.extract(signal_data)
-            
-            # Convert to DataFrame
+
+            # Convert to DataFrame, flattening matrix fields to lists for parquet compatibility
             feature_dict = features.dict()
+            if feature_dict.get('coherence_matrix') is not None:
+                feature_dict['coherence_matrix'] = np.asarray(feature_dict['coherence_matrix']).tolist()
+            if feature_dict.get('phase_lag_index') is not None:
+                feature_dict['phase_lag_index'] = np.asarray(feature_dict['phase_lag_index']).tolist()
             df = pd.DataFrame([feature_dict])
-            
+
             return df
             
         except Exception as e:

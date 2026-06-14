@@ -20,20 +20,24 @@
 - Implement API key authentication for all service endpoints
 - Add JWT token-based authentication for WebSocket connections
 - Configure CORS to allow only trusted origins
-- Implement rate limiting on all API endpoints
 - Add role-based access control (RBAC) for multi-user deployments
+
+> Note: the realtime-server now applies basic per-IP rate limiting and
+> session ID validation to all of its HTTP and WebSocket endpoints
+> (see `services/realtime-server/utils/security.py`). Authentication and
+> CORS restriction remain open items.
 
 ### Environment Variables and Secrets
 
 **Security Best Practices:**
 - Never commit `.env` files or files containing API keys to version control
-- Use `.env.example` as a template only (no real credentials)
+- Use `env.example` as a template only (no real credentials)
 - Store production secrets in secure secret management systems (e.g., AWS Secrets Manager, HashiCorp Vault)
 - Rotate API keys regularly
 - Use different API keys for development, staging, and production environments
 
 **Current Configuration:**
-- `.env.example` contains placeholder values only
+- `env.example` contains placeholder values only
 - All sensitive data should be stored in `.env` files (which are git-ignored)
 - Grafana admin password should be changed in production
 
@@ -57,6 +61,7 @@
 **Current Implementation:**
 - Pydantic models provide basic input validation
 - WebSocket messages are validated against schemas
+- The realtime-server validates session ID format/length on all session-scoped endpoints
 - File uploads (if any) should be validated for type and size
 
 **Improvements Needed:**

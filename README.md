@@ -18,24 +18,17 @@ Built on state-of-the-art neuroscience research and deep learning models, DreamW
 - **Narrative Layer**: LLM-generated ambient narration based on neural patterns
 - **Web Dashboard**: Real-time monitoring and visualization of neural states
 - **Mock Mode**: Complete demo experience without hardware
+- **Real Data Replay**: Stream real recorded EEG (PhysioNet) and fMRI (OpenNeuro) data through the pipeline without hardware
 
 ## Screenshots
 
 ### Web Dashboard
 ![Web Dashboard](docs/screenshots/dashboard.png)
-*Real-time monitoring of neural signals, emotional states, and world generation*
-
-### VR Environment
-![VR Dreamscape](docs/screenshots/vr_dreamscape.png)
-*Immersive virtual world generated from neural activity*
+*Real-time monitoring of session activity, service health, and world state*
 
 ### Neural Signal Processing
 ![EEG Processing](docs/screenshots/eeg_signals.png)
-*Real-time EEG signal analysis and feature extraction*
-
-### World Generation
-![World Generation](docs/screenshots/world_generation.png)
-*Procedural biome generation based on emotional state*
+*Real EEG signal filtering and band-power extraction from the signal processor*
 
 ## Architecture
 
@@ -70,7 +63,7 @@ Built on state-of-the-art neuroscience research and deep learning models, DreamW
 ```bash
 git clone <your-repo>
 cd dreamwalk
-cp .env.example .env
+cp env.example .env
 docker-compose up -d
 ```
 
@@ -86,7 +79,17 @@ python scripts/mock_eeg_stream.py
 # Navigate to http://localhost:8000 for dashboard
 ```
 
-### 3. Real EEG Setup (Optional)
+### 3. Replay Real Recorded EEG
+```bash
+# Start the signal-processor service, then start a "replay" stream
+# which loops real PhysioNet EEG recordings from datasets/real/eeg/
+curl -X POST http://localhost:8001/streams/start \
+  -H "Content-Type: application/json" \
+  -d '{"stream_id": "replay-1", "signal_type": "replay", "config": {}}'
+```
+See [datasets/real/SOURCES.md](datasets/real/SOURCES.md) for dataset provenance and licensing.
+
+### 4. Real EEG Setup (Optional)
 ```bash
 # Install OpenBCI drivers
 pip install pyOpenBCI
@@ -110,7 +113,7 @@ dreamwalk/
 │   └── DreamWalkVR/          # Unity VR project
 ├── datasets/
 │   ├── synthetic/            # Generated training data
-│   └── real/                 # Real EEG recordings
+│   └── real/                 # Real EEG/fMRI recordings (see SOURCES.md)
 ├── models/
 │   ├── checkpoints/          # Trained model weights
 │   └── exports/              # ONNX exports
@@ -119,7 +122,7 @@ dreamwalk/
 │   ├── real_eeg_stream.py    # Hardware integration
 │   └── train_decoder.py      # Model training
 ├── docker-compose.yml        # Service orchestration
-├── .env.example              # Environment configuration
+├── env.example                # Environment configuration
 └── README.md
 ```
 
@@ -166,7 +169,7 @@ dreamwalk/
 
 ### Testing
 
-**Test Coverage: 70%+ (target: 95%)**
+**Test Coverage: ~52% (enforced minimum: 50%, target: 95%)**
 
 The project includes comprehensive unit and integration tests with pytest. Code quality is enforced through flake8, pylint, black, and mypy.
 
@@ -217,7 +220,7 @@ python scripts/generate_synthetic_data.py --samples 10000
 - **Throughput**: 10Hz real-time processing
 - **VR Performance**: 72+ FPS on Quest 3
 - **Accuracy**: 85%+ emotion classification on test data
-- **Test Coverage**: 70%+ (target: 95%)
+- **Test Coverage**: ~52% (enforced minimum: 50%, target: 95%)
 
 ## Security
 
@@ -353,7 +356,7 @@ The project maintains high code quality standards:
 - **Linting**: flake8 and pylint for code style and quality
 - **Formatting**: black for code formatting, isort for import sorting
 - **Type Checking**: mypy for static type checking
-- **Testing**: pytest with 70%+ test coverage (target: 95%)
+- **Testing**: pytest with ~52% test coverage (enforced minimum: 50%, target: 95%)
 - **Security**: bandit for security scanning, safety for dependency checks
 - **CI/CD**: Automated testing and quality checks on every commit
 
@@ -384,7 +387,7 @@ Contributions are welcomed. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gu
 2. Run code quality checks: `flake8 services/ && black --check services/`
 3. Update tests if adding new features
 4. Update documentation as needed
-5. Ensure test coverage remains above 70%
+5. Ensure test coverage remains above the configured minimum (currently 50%)
 
 ## License
 
@@ -396,6 +399,8 @@ MIT License - see [LICENSE](LICENSE) for details.
 - MNE-Python for signal processing
 - Unity Technologies for VR platform
 - Stability AI for generative models
+- PhysioNet EEG Motor Movement/Imagery Dataset and OpenNeuro ds000001 for the
+  real EEG/fMRI samples in `datasets/real/` (see [SOURCES.md](datasets/real/SOURCES.md) for citations)
 
 ---
 
