@@ -107,263 +107,486 @@ async def dashboard():
     """Serve the main dashboard"""
     return """
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>DreamWalk Neural Interface</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
         <style>
-            body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                margin: 0;
-                padding: 20px;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                min-height: 100vh;
+            :root {
+                color-scheme: dark;
+                --bg: #0a0a0a;
+                --surface: #161616;
+                --surface-2: #1c1c1c;
+                --border: rgba(255, 255, 255, 0.08);
+                --text: #ededed;
+                --text-muted: #8a8a8a;
+                --accent: #ffffff;
+                --accent-dim: rgba(255, 255, 255, 0.08);
+                --ok: #ededed;
+                --bad: #4a4a4a;
+                --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+                --font-sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+                --font-mono: 'Space Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
             }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-height: 100vh;
+                padding: 2.5rem;
+                font-family: var(--font-sans);
+                color: var(--text);
+                background-color: var(--bg);
+                background-image:
+                    radial-gradient(circle at 88% 8%, rgba(255, 255, 255, 0.04), transparent 45%),
+                    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 48px),
+                    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0px, rgba(255, 255, 255, 0.02) 1px, transparent 1px, transparent 48px);
+            }
+
             .container {
-                max-width: 1200px;
+                max-width: 1280px;
                 margin: 0 auto;
             }
+
             .header {
-                text-align: center;
-                margin-bottom: 30px;
-            }
-            .header h1 {
-                font-size: 2.5em;
-                margin: 0;
-                text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-            }
-            .header p {
-                font-size: 1.2em;
-                opacity: 0.9;
-                margin: 10px 0;
-            }
-            .dashboard {
-                display: grid;
-                grid-template-columns: 1fr 2fr;
-                gap: 20px;
-                margin-bottom: 20px;
-            }
-            .panel {
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 15px;
-                padding: 20px;
-                backdrop-filter: blur(10px);
-                border: 1px solid rgba(255, 255, 255, 0.2);
-            }
-            .panel h2 {
-                margin-top: 0;
-                color: #fff;
-                border-bottom: 2px solid rgba(255, 255, 255, 0.3);
-                padding-bottom: 10px;
-            }
-            .metric {
                 display: flex;
                 justify-content: space-between;
+                align-items: flex-start;
+                gap: 1.5rem;
+                padding-bottom: 1.5rem;
+                margin-bottom: 2.5rem;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .header h1 {
+                margin: 0;
+                font-size: 1.75rem;
+                font-weight: 700;
+                letter-spacing: -0.02em;
+            }
+
+            .header p {
+                margin: 0.5rem 0 0;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+            }
+
+            .connection-status {
+                display: flex;
                 align-items: center;
-                margin: 15px 0;
-                padding: 10px;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 8px;
+                gap: 0.5rem;
+                padding: 0.4rem 0.75rem;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                font-family: var(--font-mono);
+                font-size: 0.7rem;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--text-muted);
+                white-space: nowrap;
             }
+
+            .status-dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--text-muted);
+            }
+
+            .connection-status.connected .status-dot {
+                background: var(--ok);
+                box-shadow: 0 0 8px rgba(255, 255, 255, 0.35);
+                animation: pulse 2s var(--ease-out) infinite;
+            }
+
+            .connection-status.disconnected .status-dot {
+                background: var(--bad);
+                box-shadow: none;
+            }
+
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.35; }
+            }
+
+            .dashboard {
+                display: grid;
+                grid-template-columns: minmax(280px, 380px) 1fr;
+                gap: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .panel {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 1.75rem;
+                transition: transform 200ms var(--ease-out), border-color 200ms var(--ease-out);
+                animation: fadeIn 500ms var(--ease-out) both;
+            }
+
+            .panel:nth-of-type(2) {
+                animation-delay: 60ms;
+            }
+
+            .panel:hover {
+                transform: translateY(-2px);
+                border-color: rgba(255, 255, 255, 0.18);
+            }
+
+            .panel h2 {
+                margin: 0 0 1.5rem;
+                padding-bottom: 0.9rem;
+                border-bottom: 1px solid var(--border);
+                font-size: 0.75rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.12em;
+                color: var(--text-muted);
+            }
+
+            .metric {
+                padding: 0.85rem 0;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .metric:last-of-type {
+                border-bottom: none;
+            }
+
+            .metric-head {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+            }
+
             .metric-label {
-                font-weight: 500;
+                font-size: 0.85rem;
+                color: var(--text-muted);
             }
+
             .metric-value {
-                font-size: 1.2em;
-                font-weight: bold;
-                color: #4CAF50;
+                font-family: var(--font-mono);
+                font-variant-numeric: tabular-nums;
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: var(--text);
             }
+
+            .metric-track {
+                position: relative;
+                height: 4px;
+                margin-top: 0.6rem;
+                background: rgba(255, 255, 255, 0.06);
+                border-radius: 2px;
+                overflow: hidden;
+            }
+
+            .metric-track.bipolar::after {
+                content: '';
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: 50%;
+                width: 1px;
+                background: rgba(255, 255, 255, 0.18);
+            }
+
+            .metric-fill {
+                position: absolute;
+                top: 0;
+                height: 100%;
+                background: var(--accent);
+                border-radius: 2px;
+                transition: left 400ms var(--ease-out), width 400ms var(--ease-out);
+            }
+
             .motifs {
-                margin: 15px 0;
+                margin-top: 1.5rem;
             }
+
+            .motifs-label {
+                display: block;
+                margin-bottom: 0.6rem;
+                font-size: 0.7rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                color: var(--text-muted);
+            }
+
             .motif-tag {
                 display: inline-block;
-                background: rgba(76, 175, 80, 0.3);
-                color: #4CAF50;
-                padding: 5px 10px;
-                margin: 2px;
-                border-radius: 15px;
-                font-size: 0.9em;
+                margin: 0 0.4rem 0.4rem 0;
+                padding: 0.3rem 0.6rem;
+                border-radius: 4px;
+                background: var(--accent-dim);
+                color: var(--accent);
+                font-family: var(--font-mono);
+                font-size: 0.7rem;
+                letter-spacing: 0.04em;
             }
-            .mood {
-                text-align: center;
-                font-size: 1.5em;
-                font-weight: bold;
-                color: #FFD700;
-                margin: 20px 0;
-                padding: 15px;
-                background: rgba(255, 215, 0, 0.1);
-                border-radius: 10px;
-                border: 2px solid rgba(255, 215, 0, 0.3);
+
+            .mood-section {
+                margin-top: 1.5rem;
+                padding-top: 1.5rem;
+                border-top: 1px solid var(--border);
             }
+
+            .mood-value {
+                margin-top: 0.6rem;
+                padding-left: 0.9rem;
+                border-left: 3px solid var(--accent);
+                font-size: 1.3rem;
+                font-weight: 600;
+                letter-spacing: -0.01em;
+            }
+
             .chart-container {
-                height: 300px;
-                background: rgba(255, 255, 255, 0.05);
-                border-radius: 10px;
-                padding: 10px;
-            }
-            .status {
-                text-align: center;
-                margin-top: 20px;
-                padding: 10px;
-                background: rgba(255, 255, 255, 0.1);
+                height: 320px;
+                border: 1px solid var(--border);
                 border-radius: 8px;
-                font-size: 0.9em;
-                opacity: 0.8;
+                background: var(--surface-2);
+                overflow: hidden;
             }
-            .connection-status {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 10px 15px;
-                border-radius: 20px;
-                font-size: 0.9em;
-                font-weight: bold;
+
+            .chart-container canvas {
+                display: block;
+                width: 100%;
+                height: 100%;
             }
-            .connected {
-                background: rgba(76, 175, 80, 0.8);
-                color: white;
+
+            .status-bar {
+                padding: 0.9rem;
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                background: var(--surface);
+                text-align: center;
+                font-family: var(--font-mono);
+                font-size: 0.75rem;
+                color: var(--text-muted);
             }
-            .disconnected {
-                background: rgba(244, 67, 54, 0.8);
-                color: white;
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(8px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+
+            @media (max-width: 860px) {
+                .dashboard {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .panel {
+                    animation: none;
+                }
+                .connection-status.connected .status-dot {
+                    animation: none;
+                }
             }
         </style>
     </head>
     <body>
         <div class="container">
-            <div class="header">
-                <h1>DreamWalk Neural Interface</h1>
-                <p>Real-time neural signal processing and dreamscape generation</p>
-            </div>
-            
-            <div class="connection-status" id="connectionStatus">Connecting...</div>
-            
-            <div class="dashboard">
-                <div class="panel">
-                    <h2>Neural State</h2>
-                    
+            <header class="header">
+                <div>
+                    <h1>DreamWalk Neural Interface</h1>
+                    <p>Real-time neural signal processing and dreamscape generation</p>
+                </div>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connecting</span>
+                </div>
+            </header>
+
+            <main class="dashboard">
+                <section class="panel">
+                    <h2>Neural state</h2>
+
                     <div class="metric">
-                        <span class="metric-label">Valence (Emotional Tone)</span>
-                        <span class="metric-value" id="valence">0.00</span>
+                        <div class="metric-head">
+                            <span class="metric-label">Valence</span>
+                            <span class="metric-value" id="valence">0.00</span>
+                        </div>
+                        <div class="metric-track bipolar">
+                            <div class="metric-fill" id="valence-bar"></div>
+                        </div>
                     </div>
-                    
+
                     <div class="metric">
-                        <span class="metric-label">Arousal (Energy Level)</span>
-                        <span class="metric-value" id="arousal">0.50</span>
+                        <div class="metric-head">
+                            <span class="metric-label">Arousal</span>
+                            <span class="metric-value" id="arousal">0.50</span>
+                        </div>
+                        <div class="metric-track">
+                            <div class="metric-fill" id="arousal-bar"></div>
+                        </div>
                     </div>
-                    
+
                     <div class="metric">
-                        <span class="metric-label">Dominance (Control)</span>
-                        <span class="metric-value" id="dominance">0.00</span>
+                        <div class="metric-head">
+                            <span class="metric-label">Dominance</span>
+                            <span class="metric-value" id="dominance">0.00</span>
+                        </div>
+                        <div class="metric-track bipolar">
+                            <div class="metric-fill" id="dominance-bar"></div>
+                        </div>
                     </div>
-                    
+
                     <div class="motifs">
-                        <strong>Neural Motifs:</strong><br>
+                        <span class="motifs-label">Neural motifs</span>
                         <div id="motifs">
                             <span class="motif-tag">calm</span>
                             <span class="motif-tag">peaceful</span>
                         </div>
                     </div>
-                    
-                    <div class="mood" id="mood">Calm and Content</div>
-                </div>
-                
-                <div class="panel">
-                    <h2>EEG Signal Visualization</h2>
-                    <div class="chart-container">
-                        <canvas id="eegChart" width="100%" height="100%"></canvas>
+
+                    <div class="mood-section">
+                        <span class="motifs-label">Current state</span>
+                        <div class="mood-value" id="mood">Calm and Content</div>
                     </div>
-                </div>
-            </div>
-            
-            <div class="status" id="status">
-                Demo running... Generating neural data
+                </section>
+
+                <section class="panel">
+                    <h2>EEG signal visualization</h2>
+                    <div class="chart-container">
+                        <canvas id="eegChart"></canvas>
+                    </div>
+                </section>
+            </main>
+
+            <div class="status-bar" id="status">
+                Demo running, generating neural data
             </div>
         </div>
-        
+
         <script>
             let ws;
-            let chart;
             let eegData = [];
-            
+
             function connect() {
                 ws = new WebSocket('ws://localhost:8000/ws');
-                
+
                 ws.onopen = function() {
-                    document.getElementById('connectionStatus').textContent = 'Connected';
-                    document.getElementById('connectionStatus').className = 'connection-status connected';
+                    const el = document.getElementById('connectionStatus');
+                    el.className = 'connection-status connected';
+                    el.querySelector('.status-text').textContent = 'Connected';
                 };
-                
+
                 ws.onmessage = function(event) {
                     const data = JSON.parse(event.data);
                     updateDashboard(data);
                 };
-                
+
                 ws.onclose = function() {
-                    document.getElementById('connectionStatus').textContent = 'Disconnected';
-                    document.getElementById('connectionStatus').className = 'connection-status disconnected';
+                    const el = document.getElementById('connectionStatus');
+                    el.className = 'connection-status disconnected';
+                    el.querySelector('.status-text').textContent = 'Disconnected';
                     setTimeout(connect, 3000);
                 };
             }
-            
+
+            function setBar(id, value, bipolar) {
+                const el = document.getElementById(id);
+                if (bipolar) {
+                    const pct = Math.max(-1, Math.min(1, value)) * 50;
+                    if (pct >= 0) {
+                        el.style.left = '50%';
+                        el.style.width = pct + '%';
+                    } else {
+                        el.style.left = (50 + pct) + '%';
+                        el.style.width = (-pct) + '%';
+                    }
+                } else {
+                    const pct = Math.max(0, Math.min(1, value)) * 100;
+                    el.style.left = '0%';
+                    el.style.width = pct + '%';
+                }
+            }
+
             function updateDashboard(data) {
                 // Update neural state
                 document.getElementById('valence').textContent = data.valence.toFixed(2);
                 document.getElementById('arousal').textContent = data.arousal.toFixed(2);
                 document.getElementById('dominance').textContent = data.dominance.toFixed(2);
                 document.getElementById('mood').textContent = data.mood;
-                
+
+                setBar('valence-bar', data.valence, true);
+                setBar('arousal-bar', data.arousal, false);
+                setBar('dominance-bar', data.dominance, true);
+
                 // Update motifs
                 const motifsDiv = document.getElementById('motifs');
-                motifsDiv.innerHTML = data.motif_tags.map(tag => 
+                motifsDiv.innerHTML = data.motif_tags.map(tag =>
                     `<span class="motif-tag">${tag}</span>`
-                ).join(' ');
-                
+                ).join('');
+
                 // Update EEG chart
                 eegData = data.eeg_data;
                 updateChart();
-                
+
                 // Update status
-                document.getElementById('status').textContent = 
+                document.getElementById('status').textContent =
                     `Last update: ${new Date().toLocaleTimeString()} - ${data.mood}`;
             }
-            
+
             function updateChart() {
                 const canvas = document.getElementById('eegChart');
                 const ctx = canvas.getContext('2d');
-                const width = canvas.width = canvas.offsetWidth;
-                const height = canvas.height = canvas.offsetHeight;
-                
+                const width = canvas.width = canvas.clientWidth;
+                const height = canvas.height = canvas.clientHeight;
+
                 ctx.clearRect(0, 0, width, height);
-                
-                if (eegData.length > 1) {
-                    ctx.strokeStyle = '#4CAF50';
-                    ctx.lineWidth = 2;
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+                ctx.lineWidth = 1;
+                for (let i = 1; i < 4; i++) {
+                    const y = (height / 4) * i;
                     ctx.beginPath();
-                    
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+
+                if (eegData.length > 1) {
+                    ctx.strokeStyle = '#ededed';
+                    ctx.lineWidth = 2;
+                    ctx.shadowColor = 'rgba(255, 255, 255, 0.25)';
+                    ctx.shadowBlur = 8;
+                    ctx.beginPath();
+
                     const stepX = width / (eegData.length - 1);
                     const centerY = height / 2;
-                    const scaleY = height / 100; // Scale for ±50 range
-                    
+                    const scaleY = height / 120; // Scale for +/-60 range
+
                     for (let i = 0; i < eegData.length; i++) {
                         const x = i * stepX;
                         const y = centerY - (eegData[i] * scaleY);
-                        
+
                         if (i === 0) {
                             ctx.moveTo(x, y);
                         } else {
                             ctx.lineTo(x, y);
                         }
                     }
-                    
+
                     ctx.stroke();
+                    ctx.shadowBlur = 0;
                 }
             }
-            
+
             // Initialize
             connect();
-            
+
             // Handle window resize
             window.addEventListener('resize', updateChart);
         </script>
