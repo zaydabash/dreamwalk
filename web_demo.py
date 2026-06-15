@@ -26,6 +26,7 @@ class NeuralState:
         self.motif_tags = ["calm", "peaceful"]
         self.eeg_data = []
         self.time_points = []
+        self.band_power = {"delta": 0.5, "theta": 0.0, "alpha": 0.5, "beta": 0.5, "gamma": 0.0}
 
     def update(self):
         """Update neural state with realistic changes"""
@@ -63,18 +64,30 @@ class NeuralState:
 
         # Generate EEG data
         t = np.linspace(0, 1, 10)
+        delta_amp = 18 * (1 - self.arousal) * (1 - abs(self.valence))
+        theta_amp = 10 * abs(self.valence)
         alpha_amp = 20 * (1 - self.arousal)
         beta_amp = 15 * self.arousal
-        theta_amp = 10 * abs(self.valence)
+        gamma_amp = 12 * self.arousal * abs(self.dominance)
 
-        signal = (alpha_amp * np.sin(2 * np.pi * 10 * t) +
-                 beta_amp * np.sin(2 * np.pi * 20 * t) +
+        signal = (delta_amp * np.sin(2 * np.pi * 2 * t) +
                  theta_amp * np.sin(2 * np.pi * 6 * t) +
+                 alpha_amp * np.sin(2 * np.pi * 10 * t) +
+                 beta_amp * np.sin(2 * np.pi * 20 * t) +
+                 gamma_amp * np.sin(2 * np.pi * 35 * t) +
                  np.random.normal(0, 2, len(t)))
 
         self.eeg_data.extend(signal.tolist())
         if len(self.eeg_data) > 100:
             self.eeg_data = self.eeg_data[-100:]
+
+        self.band_power = {
+            "delta": round(min(1.0, delta_amp / 18), 2),
+            "theta": round(min(1.0, theta_amp / 10), 2),
+            "alpha": round(min(1.0, alpha_amp / 20), 2),
+            "beta": round(min(1.0, beta_amp / 15), 2),
+            "gamma": round(min(1.0, gamma_amp / 12), 2),
+        }
 
     def get_mood(self):
         """Determine mood from neural state"""
@@ -96,6 +109,7 @@ class NeuralState:
             "motif_tags": self.motif_tags,
             "mood": self.get_mood(),
             "eeg_data": self.eeg_data[-20:],  # Last 2 seconds
+            "band_power": self.band_power,
             "timestamp": datetime.now().isoformat()
         }
 
@@ -179,6 +193,14 @@ async def dashboard():
                 grid-template-columns: minmax(280px, 380px) 1fr;
                 gap: 1.5rem;
                 margin-bottom: 1.5rem;
+                align-items: start;
+            }
+
+            .dashboard-col {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+                min-width: 0;
             }
 
             .panel {
@@ -198,6 +220,10 @@ async def dashboard():
             }
 
             .panel h2 {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 0.75rem;
                 margin: 0 0 1.5rem;
                 padding-bottom: 0.9rem;
                 border-bottom: 1px solid var(--border);
@@ -206,6 +232,41 @@ async def dashboard():
                 text-transform: uppercase;
                 letter-spacing: 0.12em;
                 color: var(--text-muted);
+            }
+
+            .panel-actions {
+                display: flex;
+                gap: 0.5rem;
+                text-transform: none;
+                letter-spacing: normal;
+            }
+
+            .btn {
+                padding: 0.3rem 0.7rem;
+                border: 1px solid var(--border);
+                background: transparent;
+                color: var(--text-muted);
+                font-family: var(--font-mono);
+                font-size: 0.65rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                cursor: pointer;
+                transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+            }
+
+            .btn.active {
+                background: var(--accent-dim);
+                color: var(--text);
+                border-color: rgba(255, 255, 255, 0.18);
+            }
+
+            @media (hover: hover) and (pointer: fine) {
+                .btn:hover {
+                    background: var(--accent-dim);
+                    color: var(--text);
+                    border-color: rgba(255, 255, 255, 0.18);
+                }
             }
 
             .metric {
@@ -228,6 +289,42 @@ async def dashboard():
 
             .metric:last-of-type {
                 border-bottom: none;
+            }
+
+            .band-row {
+                display: grid;
+                grid-template-columns: 70px 1fr 48px;
+                align-items: center;
+                gap: 0.75rem;
+                padding: 0.55rem 0;
+                border-bottom: 1px solid var(--border);
+                animation: fadeIn 400ms var(--ease-out) both;
+            }
+
+            .band-row:nth-of-type(1) { animation-delay: 100ms; }
+            .band-row:nth-of-type(2) { animation-delay: 140ms; }
+            .band-row:nth-of-type(3) { animation-delay: 180ms; }
+            .band-row:nth-of-type(4) { animation-delay: 220ms; }
+            .band-row:nth-of-type(5) { animation-delay: 260ms; }
+
+            .band-row:last-of-type {
+                border-bottom: none;
+            }
+
+            .band-label {
+                font-size: 0.75rem;
+                color: var(--text-muted);
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+            }
+
+            .band-value {
+                font-family: var(--font-mono);
+                font-variant-numeric: tabular-nums;
+                font-size: 0.85rem;
+                font-weight: 600;
+                text-align: right;
+                color: var(--text);
             }
 
             .metric-head {
@@ -341,6 +438,37 @@ async def dashboard():
                 height: 100%;
             }
 
+            .affect-container {
+                position: relative;
+                height: 220px;
+                border: 1px solid var(--border);
+                background: var(--surface-2);
+                overflow: hidden;
+            }
+
+            .affect-container canvas {
+                display: block;
+                width: 100%;
+                height: 100%;
+            }
+
+            .affect-label {
+                position: absolute;
+                padding: 0.5rem 0.6rem;
+                background: var(--surface-2);
+                font-family: var(--font-mono);
+                font-size: 0.65rem;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                color: var(--text-muted);
+                pointer-events: none;
+            }
+
+            .affect-label-tl { top: 0; left: 0; }
+            .affect-label-tr { top: 0; right: 0; text-align: right; }
+            .affect-label-bl { bottom: 0; left: 0; }
+            .affect-label-br { bottom: 0; right: 0; text-align: right; }
+
             .status-bar {
                 display: flex;
                 align-items: center;
@@ -392,7 +520,8 @@ async def dashboard():
 
             @media (prefers-reduced-motion: reduce) {
                 .panel,
-                .metric {
+                .metric,
+                .band-row {
                     animation: none;
                 }
                 .live-dot.connected {
@@ -409,59 +538,119 @@ async def dashboard():
             </header>
 
             <main class="dashboard">
-                <section class="panel">
-                    <h2>Neural state</h2>
+                <div class="dashboard-col">
+                    <section class="panel">
+                        <h2>Neural state</h2>
 
-                    <div class="metric">
-                        <div class="metric-head">
-                            <span class="metric-label">Valence</span>
-                            <span class="metric-value" id="valence">0.00</span>
+                        <div class="metric">
+                            <div class="metric-head">
+                                <span class="metric-label">Valence</span>
+                                <span class="metric-value" id="valence">0.00</span>
+                            </div>
+                            <div class="metric-track bipolar">
+                                <div class="metric-fill" id="valence-bar"></div>
+                            </div>
                         </div>
-                        <div class="metric-track bipolar">
-                            <div class="metric-fill" id="valence-bar"></div>
-                        </div>
-                    </div>
 
-                    <div class="metric">
-                        <div class="metric-head">
-                            <span class="metric-label">Arousal</span>
-                            <span class="metric-value" id="arousal">0.50</span>
+                        <div class="metric">
+                            <div class="metric-head">
+                                <span class="metric-label">Arousal</span>
+                                <span class="metric-value" id="arousal">0.50</span>
+                            </div>
+                            <div class="metric-track">
+                                <div class="metric-fill" id="arousal-bar"></div>
+                            </div>
                         </div>
-                        <div class="metric-track">
-                            <div class="metric-fill" id="arousal-bar"></div>
-                        </div>
-                    </div>
 
-                    <div class="metric">
-                        <div class="metric-head">
-                            <span class="metric-label">Dominance</span>
-                            <span class="metric-value" id="dominance">0.00</span>
+                        <div class="metric">
+                            <div class="metric-head">
+                                <span class="metric-label">Dominance</span>
+                                <span class="metric-value" id="dominance">0.00</span>
+                            </div>
+                            <div class="metric-track bipolar">
+                                <div class="metric-fill" id="dominance-bar"></div>
+                            </div>
                         </div>
-                        <div class="metric-track bipolar">
-                            <div class="metric-fill" id="dominance-bar"></div>
+
+                        <div class="motifs">
+                            <span class="motifs-label">Neural motifs</span>
+                            <div id="motifs">
+                                <span class="motif-tag">calm</span>
+                                <span class="motif-tag">peaceful</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="motifs">
-                        <span class="motifs-label">Neural motifs</span>
-                        <div id="motifs">
-                            <span class="motif-tag">calm</span>
-                            <span class="motif-tag">peaceful</span>
+                        <div class="mood-section">
+                            <span class="motifs-label">Current state</span>
+                            <div class="mood-value" id="mood">Calm and Content</div>
                         </div>
-                    </div>
+                    </section>
 
-                    <div class="mood-section">
-                        <span class="motifs-label">Current state</span>
-                        <div class="mood-value" id="mood">Calm and Content</div>
-                    </div>
-                </section>
+                    <section class="panel">
+                        <h2>Affect map</h2>
+                        <div class="affect-container">
+                            <canvas id="affectChart"></canvas>
+                            <span class="affect-label affect-label-tl">Anxious</span>
+                            <span class="affect-label affect-label-tr">Excited</span>
+                            <span class="affect-label affect-label-bl">Sad</span>
+                            <span class="affect-label affect-label-br">Calm</span>
+                        </div>
+                    </section>
+                </div>
 
-                <section class="panel">
-                    <h2>EEG signal visualization</h2>
-                    <div class="chart-container">
-                        <canvas id="eegChart"></canvas>
-                    </div>
-                </section>
+                <div class="dashboard-col">
+                    <section class="panel">
+                        <h2>
+                            EEG signal visualization
+                            <span class="panel-actions">
+                                <button class="btn" id="pauseBtn" type="button">Pause</button>
+                                <button class="btn" id="exportBtn" type="button">Export</button>
+                            </span>
+                        </h2>
+                        <div class="chart-container">
+                            <canvas id="eegChart"></canvas>
+                        </div>
+                    </section>
+
+                    <section class="panel">
+                        <h2>Frequency bands</h2>
+                        <div class="band-row">
+                            <span class="band-label">Delta</span>
+                            <div class="metric-track">
+                                <div class="metric-fill" id="band-delta-bar"></div>
+                            </div>
+                            <span class="band-value" id="band-delta">0.50</span>
+                        </div>
+                        <div class="band-row">
+                            <span class="band-label">Theta</span>
+                            <div class="metric-track">
+                                <div class="metric-fill" id="band-theta-bar"></div>
+                            </div>
+                            <span class="band-value" id="band-theta">0.00</span>
+                        </div>
+                        <div class="band-row">
+                            <span class="band-label">Alpha</span>
+                            <div class="metric-track">
+                                <div class="metric-fill" id="band-alpha-bar"></div>
+                            </div>
+                            <span class="band-value" id="band-alpha">0.50</span>
+                        </div>
+                        <div class="band-row">
+                            <span class="band-label">Beta</span>
+                            <div class="metric-track">
+                                <div class="metric-fill" id="band-beta-bar"></div>
+                            </div>
+                            <span class="band-value" id="band-beta">0.50</span>
+                        </div>
+                        <div class="band-row">
+                            <span class="band-label">Gamma</span>
+                            <div class="metric-track">
+                                <div class="metric-fill" id="band-gamma-bar"></div>
+                            </div>
+                            <span class="band-value" id="band-gamma">0.00</span>
+                        </div>
+                    </section>
+                </div>
             </main>
 
             <div class="status-bar" id="status">
@@ -482,6 +671,15 @@ async def dashboard():
 
             let prevValues = { valence: 0, arousal: 0.5, dominance: 0 };
             let prevMood = 'Calm and Content';
+            let prevBands = { delta: 0.5, theta: 0, alpha: 0.5, beta: 0.5, gamma: 0 };
+
+            let affectAnimFrom = { valence: 0, arousal: 0.5 };
+            let affectAnimTo = { valence: 0, arousal: 0.5 };
+            let affectAnimStart = 0;
+            let affectTrail = [];
+
+            let paused = false;
+            let sessionHistory = [];
 
             function connect() {
                 ws = new WebSocket('ws://localhost:8000/ws');
@@ -492,6 +690,8 @@ async def dashboard():
 
                 ws.onmessage = function(event) {
                     const data = JSON.parse(event.data);
+                    if (paused) return;
+                    sessionHistory.push(data);
                     updateDashboard(data);
                 };
 
@@ -558,11 +758,24 @@ async def dashboard():
                 animateValue(document.getElementById('valence'), prevValues.valence, data.valence);
                 animateValue(document.getElementById('arousal'), prevValues.arousal, data.arousal);
                 animateValue(document.getElementById('dominance'), prevValues.dominance, data.dominance);
+
+                affectAnimFrom = { valence: prevValues.valence, arousal: prevValues.arousal };
+                affectAnimTo = { valence: data.valence, arousal: data.arousal };
+                affectAnimStart = performance.now();
+                affectTrail.push({ valence: data.valence, arousal: data.arousal });
+                if (affectTrail.length > 30) affectTrail.shift();
+
                 prevValues = { valence: data.valence, arousal: data.arousal, dominance: data.dominance };
 
                 setBar('valence-bar', data.valence, true);
                 setBar('arousal-bar', data.arousal, false);
                 setBar('dominance-bar', data.dominance, true);
+
+                for (const band of ['delta', 'theta', 'alpha', 'beta', 'gamma']) {
+                    animateValue(document.getElementById('band-' + band), prevBands[band], data.band_power[band]);
+                    setBar('band-' + band + '-bar', data.band_power[band], false);
+                }
+                prevBands = data.band_power;
 
                 updateMood(data.mood);
 
@@ -624,7 +837,57 @@ async def dashboard():
                 }
             }
 
-            function renderChart() {
+            function drawAffect() {
+                const canvas = document.getElementById('affectChart');
+                const ctx = canvas.getContext('2d');
+                const width = canvas.width = canvas.clientWidth;
+                const height = canvas.height = canvas.clientHeight;
+
+                ctx.clearRect(0, 0, width, height);
+
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(width / 2, 0);
+                ctx.lineTo(width / 2, height);
+                ctx.moveTo(0, height / 2);
+                ctx.lineTo(width, height / 2);
+                ctx.stroke();
+
+                const toXY = (valence, arousal) => ({
+                    x: ((valence + 1) / 2) * width,
+                    y: (1 - arousal) * height
+                });
+
+                affectTrail.forEach((p, i) => {
+                    const { x, y } = toXY(p.valence, p.arousal);
+                    const alpha = ((i + 1) / affectTrail.length) * 0.3;
+                    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+
+                let v = affectAnimTo.valence;
+                let a = affectAnimTo.arousal;
+                if (!reduceMotion && CHART_ANIM_MS > 0) {
+                    const t = Math.min(1, (performance.now() - affectAnimStart) / CHART_ANIM_MS);
+                    const eased = 1 - Math.pow(1 - t, 3);
+                    v = affectAnimFrom.valence + (affectAnimTo.valence - affectAnimFrom.valence) * eased;
+                    a = affectAnimFrom.arousal + (affectAnimTo.arousal - affectAnimFrom.arousal) * eased;
+                }
+
+                const point = toXY(v, a);
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
+                ctx.shadowBlur = 10;
+                ctx.fillStyle = '#ededed';
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+
+            function renderLoop() {
                 if (CHART_ANIM_MS === 0 || chartAnimFrom.length !== eegData.length) {
                     displayData = eegData;
                 } else {
@@ -633,15 +896,60 @@ async def dashboard():
                     displayData = eegData.map((v, i) => chartAnimFrom[i] + (v - chartAnimFrom[i]) * eased);
                 }
                 drawChart(displayData);
-                requestAnimationFrame(renderChart);
+                drawAffect();
+                requestAnimationFrame(renderLoop);
             }
+
+            function downloadCsv() {
+                if (sessionHistory.length === 0) return;
+
+                const header = 'timestamp,valence,arousal,dominance,mood,motifs,delta,theta,alpha,beta,gamma';
+                const rows = sessionHistory.map(d => [
+                    d.timestamp,
+                    d.valence,
+                    d.arousal,
+                    d.dominance,
+                    `"${d.mood}"`,
+                    `"${d.motif_tags.join(' ')}"`,
+                    d.band_power.delta,
+                    d.band_power.theta,
+                    d.band_power.alpha,
+                    d.band_power.beta,
+                    d.band_power.gamma
+                ].join(','));
+
+                const csv = [header, ...rows].join('\\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `dreamwalk-session-${Date.now()}.csv`;
+                link.click();
+
+                URL.revokeObjectURL(url);
+            }
+
+            document.getElementById('pauseBtn').addEventListener('click', function() {
+                paused = !paused;
+                this.textContent = paused ? 'Resume' : 'Pause';
+                this.classList.toggle('active', paused);
+                if (paused) {
+                    document.getElementById('statusText').textContent = 'Paused';
+                }
+            });
+
+            document.getElementById('exportBtn').addEventListener('click', downloadCsv);
 
             // Initialize
             connect();
-            requestAnimationFrame(renderChart);
+            requestAnimationFrame(renderLoop);
 
             // Handle window resize
-            window.addEventListener('resize', () => drawChart(displayData));
+            window.addEventListener('resize', () => {
+                drawChart(displayData);
+                drawAffect();
+            });
         </script>
     </body>
     </html>
