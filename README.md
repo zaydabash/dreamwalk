@@ -207,11 +207,12 @@ mypy services/
 
 ### Training Models
 ```bash
-# Train neural decoder
+# Train the EEG-to-CLIP decoder, emotion classifier, and motif detector on
+# synthetic data, saving checkpoints to models/checkpoints/
 python scripts/train_decoder.py --config configs/decoder_config.yaml
 
-# Generate synthetic data
-python scripts/generate_synthetic_data.py --samples 10000
+# Or override individual settings on the command line instead of the config file
+python scripts/train_decoder.py --samples 5000 --models eeg_to_clip emotion_classifier
 ```
 
 ## Performance Metrics

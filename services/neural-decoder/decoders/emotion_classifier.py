@@ -5,8 +5,9 @@ Classifies emotional states from neural features.
 """
 
 import asyncio
-import logging
 import os
+
+import structlog
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 import torch
@@ -182,7 +183,7 @@ class EmotionClassifier:
     def __init__(self, model_path: Optional[str] = None, config: Optional[DecoderConfig] = None):
         self.model_path = model_path
         self.config = config or DecoderConfig()
-        self.logger = logging.getLogger(__name__)
+        self.logger = structlog.get_logger(__name__)
         
         # Model components
         self.model = None
@@ -210,7 +211,9 @@ class EmotionClassifier:
         try:
             path = model_path or self.model_path
             if path and os.path.exists(path):
-                checkpoint = torch.load(path, map_location=self.device)
+                # weights_only=False: checkpoints bundle a fitted StandardScaler/LabelEncoder
+                # alongside the tensor weights, and we only ever load checkpoints this codebase trained.
+                checkpoint = torch.load(path, map_location=self.device, weights_only=False)
                 
                 # Initialize model
                 self.model = EmotionClassifierNet(

@@ -6,9 +6,10 @@ extracted neural features using a multi-label neural network.
 """
 
 import asyncio
-import logging
 import os
 import uuid
+
+import structlog
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -133,7 +134,7 @@ class MotifDetector:
     def __init__(self, model_path: Optional[str] = None, config: Optional[DecoderConfig] = None):
         self.model_path = model_path
         self.config = config or DecoderConfig()
-        self.logger = logging.getLogger(__name__)
+        self.logger = structlog.get_logger(__name__)
 
         self.model = None
         self.scaler = StandardScaler()
@@ -154,7 +155,9 @@ class MotifDetector:
         try:
             path = model_path or self.model_path
             if path and os.path.exists(path):
-                checkpoint = torch.load(path, map_location=self.device)
+                # weights_only=False: checkpoints bundle a fitted StandardScaler alongside
+                # the tensor weights, and we only ever load checkpoints this codebase trained.
+                checkpoint = torch.load(path, map_location=self.device, weights_only=False)
 
                 self.model = MotifDetectorNet(
                     input_dim=checkpoint.get('input_dim', self.input_dim),

@@ -144,7 +144,7 @@ class DecoderConfig(BaseModel):
 class TrainingData(BaseModel):
     """Training data for neural decoders"""
     features: List[Dict[str, Any]] = Field(..., description="Neural features")
-    targets: List[Dict[str, Any]] = Field(..., description="Target values/labels")
+    targets: List[List[float]] = Field(..., description="Target CLIP-style embeddings for EEG-to-CLIP training")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Training metadata")
     session_ids: List[str] = Field(default_factory=list, description="Session identifiers")
 

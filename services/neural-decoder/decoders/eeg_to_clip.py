@@ -5,8 +5,9 @@ Maps neural features to CLIP embedding space for world generation.
 """
 
 import asyncio
-import logging
 import os
+
+import structlog
 from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 import torch
@@ -132,7 +133,7 @@ class EEGToCLIPDecoder:
         self.clip_model = clip_model
         self.model_path = model_path
         self.config = config or DecoderConfig()
-        self.logger = logging.getLogger(__name__)
+        self.logger = structlog.get_logger(__name__)
         
         # Model components
         self.model = None
@@ -156,7 +157,9 @@ class EEGToCLIPDecoder:
         try:
             path = model_path or self.model_path
             if path and os.path.exists(path):
-                checkpoint = torch.load(path, map_location=self.device)
+                # weights_only=False: checkpoints bundle a fitted StandardScaler alongside
+                # the tensor weights, and we only ever load checkpoints this codebase trained.
+                checkpoint = torch.load(path, map_location=self.device, weights_only=False)
                 
                 # Initialize model
                 self.model = EEGToCLIPNet(

@@ -141,12 +141,29 @@ class TestSyntheticDataGenerator:
     @pytest.mark.asyncio
     async def test_generate_training_data_shapes(self):
         generator = SyntheticDataGenerator(seed=42)
-        training_data = await generator.generate_training_data(n_samples=5, n_channels=8)
+        training_data = await generator.generate_training_data(n_samples=5, n_channels=8, embedding_dim=16)
 
         assert len(training_data.features) == 5
         assert len(training_data.targets) == 5
         assert len(training_data.session_ids) == 5
         assert training_data.metadata["n_channels"] == 8
+
+    @pytest.mark.asyncio
+    async def test_generated_targets_are_unit_embeddings(self):
+        generator = SyntheticDataGenerator(seed=42)
+        training_data = await generator.generate_training_data(n_samples=3, n_channels=8, embedding_dim=16)
+
+        for target in training_data.targets:
+            assert len(target) == 16
+            assert np.isclose(np.linalg.norm(target), 1.0, atol=1e-6)
+
+    @pytest.mark.asyncio
+    async def test_generated_targets_vary_with_features(self):
+        generator = SyntheticDataGenerator(seed=42)
+        training_data = await generator.generate_training_data(n_samples=20, n_channels=8, embedding_dim=16)
+
+        unique_targets = {tuple(round(v, 8) for v in target) for target in training_data.targets}
+        assert len(unique_targets) == 20
 
     @pytest.mark.asyncio
     async def test_generated_features_have_expected_keys(self):
@@ -168,3 +185,67 @@ class TestSyntheticDataGenerator:
         sample_b = gen_b._generate_feature_sample(n_channels=4)
 
         assert sample_a["alpha_power"] == sample_b["alpha_power"]
+
+
+@pytest.mark.unit
+class TestTrainingPipeline:
+    """End-to-end smoke tests for synthetic training and checkpoint save/load"""
+
+    @pytest.mark.asyncio
+    async def test_eeg_to_clip_train_save_load_round_trip(self, decoder_config, tmp_path):
+        generator = SyntheticDataGenerator(seed=1)
+        training_data = await generator.generate_training_data(n_samples=40, n_channels=8, embedding_dim=32)
+
+        decoder = EEGToCLIPDecoder(config=decoder_config)
+        decoder.output_dim = 32
+        await decoder.train_synthetic(training_data)
+        assert decoder.is_trained is True
+
+        checkpoint_path = tmp_path / "eeg_to_clip.pth"
+        await decoder.save_model(str(checkpoint_path))
+
+        reloaded = EEGToCLIPDecoder(config=decoder_config)
+        await reloaded.load_model(str(checkpoint_path))
+        assert reloaded.is_trained is True
+
+        embedding = await reloaded.decode(_sample_features())
+        assert embedding.shape == (32,)
+        assert np.isclose(np.linalg.norm(embedding), 1.0, atol=1e-4)
+
+    @pytest.mark.asyncio
+    async def test_emotion_classifier_train_save_load_round_trip(self, decoder_config, tmp_path):
+        generator = SyntheticDataGenerator(seed=2)
+        training_data = await generator.generate_training_data(n_samples=40, n_channels=8)
+
+        classifier = EmotionClassifier(config=decoder_config)
+        await classifier.train_synthetic(training_data)
+        assert classifier.is_trained is True
+
+        checkpoint_path = tmp_path / "emotion_classifier.pth"
+        await classifier.save_model(str(checkpoint_path))
+
+        reloaded = EmotionClassifier(config=decoder_config)
+        await reloaded.load_model(str(checkpoint_path))
+        assert reloaded.is_trained is True
+
+        state = await reloaded.classify(_sample_features())
+        assert state.dominant_emotion in reloaded.supported_emotions
+
+    @pytest.mark.asyncio
+    async def test_motif_detector_train_save_load_round_trip(self, decoder_config, tmp_path):
+        generator = SyntheticDataGenerator(seed=3)
+        training_data = await generator.generate_training_data(n_samples=40, n_channels=8)
+
+        detector = MotifDetector(config=decoder_config)
+        await detector.train_synthetic(training_data)
+        assert detector.is_trained is True
+
+        checkpoint_path = tmp_path / "motif_detector.pth"
+        await detector.save_model(str(checkpoint_path))
+
+        reloaded = MotifDetector(config=decoder_config)
+        await reloaded.load_model(str(checkpoint_path))
+        assert reloaded.is_trained is True
+
+        motifs = await reloaded.detect(_sample_features())
+        assert all(motif.motif_type in SUPPORTED_MOTIFS for motif in motifs)
