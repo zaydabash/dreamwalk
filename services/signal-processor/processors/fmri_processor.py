@@ -10,7 +10,6 @@ import logging
 from typing import List, Optional
 
 import numpy as np
-
 from models.signal_models import SignalData, fMRIConfig
 
 

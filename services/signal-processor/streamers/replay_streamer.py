@@ -12,13 +12,18 @@ import os
 from typing import Any, AsyncGenerator, Dict, Optional
 
 import numpy as np
-
 from models.signal_models import EEGConfig, SignalData
 
 DEFAULT_REPLAY_FILE = os.path.normpath(
     os.path.join(
-        os.path.dirname(__file__), "..", "..", "..",
-        "datasets", "real", "eeg", "S001R01.edf",
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "..",
+        "datasets",
+        "real",
+        "eeg",
+        "S001R01.edf",
     )
 )
 
@@ -36,9 +41,7 @@ class ReplayStreamer:
         self.loop_playback = self.config.get("loop", True)
 
         self.eeg_config = EEGConfig(
-            channels=self.config.get("channels", [
-                "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4"
-            ])
+            channels=self.config.get("channels", ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4"])
         )
 
         self._data: Optional[np.ndarray] = None

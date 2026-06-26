@@ -7,11 +7,10 @@ windows for the processing pipeline.
 
 import asyncio
 import logging
-from typing import AsyncGenerator, Dict, Any, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import numpy as np
-
-from models.signal_models import SignalData, EEGConfig
+from models.signal_models import EEGConfig, SignalData
 
 
 class LSLStreamer:
@@ -27,9 +26,9 @@ class LSLStreamer:
 
         self.eeg_config = EEGConfig(
             sampling_rate=self.config.get("sampling_rate", 250),
-            channels=self.config.get("channels", [
-                "Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4"
-            ]),
+            channels=self.config.get(
+                "channels", ["Fp1", "Fp2", "F3", "F4", "C3", "C4", "P3", "P4"]
+            ),
         )
 
         self._inlet = None

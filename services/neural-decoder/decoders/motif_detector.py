@@ -5,35 +5,61 @@ Detects neural patterns/motifs (e.g. meditation, stress, focus) from
 extracted neural features using a multi-label neural network.
 """
 
-import asyncio
 import os
 import uuid
-
-import structlog
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
+import structlog
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
-from sklearn.preprocessing import StandardScaler
+from models.decoder_models import DecoderConfig, NeuralMotif, TrainingData
 from sklearn.model_selection import train_test_split
-
-from models.decoder_models import NeuralMotif, DecoderConfig, TrainingData
-
+from sklearn.preprocessing import StandardScaler
+from torch.utils.data import DataLoader, Dataset
 
 SUPPORTED_MOTIFS = [
-    'meditation', 'stress', 'focus', 'creativity', 'relaxation',
-    'alertness', 'fatigue', 'confusion', 'flow_state', 'anxiety'
+    "meditation",
+    "stress",
+    "focus",
+    "creativity",
+    "relaxation",
+    "alertness",
+    "fatigue",
+    "confusion",
+    "flow_state",
+    "anxiety",
 ]
+
+# Heuristic rules mapping a band-power summary to each synthetic motif label.
+# Kept as a table (rather than one if-statement per motif) so new motifs can be
+# added without growing the cyclomatic complexity of _generate_motif_labels.
+_MOTIF_LABEL_RULES: Dict[str, Callable[[Dict[str, float]], bool]] = {
+    "meditation": lambda b: b["alpha"] > 1.2 and b["theta"] > 1.0 and b["beta"] < 0.8,
+    "stress": lambda b: b["beta"] > 1.5 and b["gamma"] > 1.0 and b["asymmetry"] < -0.2,
+    "focus": lambda b: b["beta"] > 1.2 and b["alpha"] < 0.8,
+    "creativity": lambda b: b["theta"] > 1.0 and b["alpha"] > 0.8 and b["asymmetry"] > 0.1,
+    "relaxation": lambda b: b["alpha"] > 1.2 and b["beta"] < 0.6,
+    "alertness": lambda b: b["beta"] > 1.0 and b["gamma"] > 0.8 and b["artifact_ratio"] < 0.2,
+    "fatigue": lambda b: b["delta"] > 1.2 and b["beta"] < 0.5,
+    "confusion": lambda b: b["theta"] > 1.2 and 0.6 < b["beta"] < 1.2,
+    "flow_state": lambda b: 0.8 < b["alpha"] < 1.3
+    and 0.8 < b["beta"] < 1.3
+    and b["artifact_ratio"] < 0.15,
+    "anxiety": lambda b: b["beta"] > 1.5 and b["gamma"] > 1.2 and b["artifact_ratio"] > 0.3,
+}
 
 
 class MotifDataset(Dataset):
     """Dataset for multi-label neural motif detection"""
 
-    def __init__(self, features: List[Dict[str, Any]], labels: np.ndarray,
-                 scaler: Optional[StandardScaler] = None):
+    def __init__(
+        self,
+        features: List[Dict[str, Any]],
+        labels: np.ndarray,
+        scaler: Optional[StandardScaler] = None,
+    ):
         self.features = features
         self.labels = labels
         self.scaler = scaler
@@ -49,24 +75,24 @@ class MotifDataset(Dataset):
         for feature_dict in self.features:
             vector = []
 
-            for band in ['delta_power', 'theta_power', 'alpha_power', 'beta_power', 'gamma_power']:
+            for band in ["delta_power", "theta_power", "alpha_power", "beta_power", "gamma_power"]:
                 if band in feature_dict:
                     vector.extend(feature_dict[band])
                 else:
                     vector.extend([0.0] * 8)
 
-            for param in ['hjorth_activity', 'hjorth_mobility', 'hjorth_complexity']:
+            for param in ["hjorth_activity", "hjorth_mobility", "hjorth_complexity"]:
                 if param in feature_dict:
                     vector.extend(feature_dict[param])
                 else:
                     vector.extend([0.0] * 8)
 
-            vector.append(feature_dict.get('frontal_asymmetry', 0.0))
-            vector.append(feature_dict.get('parietal_asymmetry', 0.0))
-            vector.append(feature_dict.get('artifact_ratio', 0.0))
-            vector.append(float(feature_dict.get('eye_blink_count', 0)))
+            vector.append(feature_dict.get("frontal_asymmetry", 0.0))
+            vector.append(feature_dict.get("parietal_asymmetry", 0.0))
+            vector.append(feature_dict.get("artifact_ratio", 0.0))
+            vector.append(float(feature_dict.get("eye_blink_count", 0)))
 
-            for stat in ['mean_amplitude', 'std_amplitude', 'skewness', 'kurtosis']:
+            for stat in ["mean_amplitude", "std_amplitude", "skewness", "kurtosis"]:
                 if stat in feature_dict:
                     vector.extend(feature_dict[stat])
                 else:
@@ -97,20 +123,19 @@ class MotifDetectorNet(nn.Module):
         layers = []
         prev_dim = input_dim
         for hidden_dim in hidden_dims:
-            layers.extend([
-                nn.Linear(prev_dim, hidden_dim),
-                nn.BatchNorm1d(hidden_dim),
-                nn.ReLU(),
-                nn.Dropout(0.3)
-            ])
+            layers.extend(
+                [
+                    nn.Linear(prev_dim, hidden_dim),
+                    nn.BatchNorm1d(hidden_dim),
+                    nn.ReLU(),
+                    nn.Dropout(0.3),
+                ]
+            )
             prev_dim = hidden_dim
 
         self.feature_extractor = nn.Sequential(*layers)
         self.motif_head = nn.Sequential(
-            nn.Linear(prev_dim, 64),
-            nn.ReLU(),
-            nn.Dropout(0.2),
-            nn.Linear(64, num_motifs)
+            nn.Linear(prev_dim, 64), nn.ReLU(), nn.Dropout(0.2), nn.Linear(64, num_motifs)
         )
 
         self._initialize_weights()
@@ -160,18 +185,18 @@ class MotifDetector:
                 checkpoint = torch.load(path, map_location=self.device, weights_only=False)
 
                 self.model = MotifDetectorNet(
-                    input_dim=checkpoint.get('input_dim', self.input_dim),
+                    input_dim=checkpoint.get("input_dim", self.input_dim),
                     num_motifs=len(self.supported_motifs),
-                    hidden_dims=checkpoint.get('hidden_dims', [256, 128, 64])
+                    hidden_dims=checkpoint.get("hidden_dims", [256, 128, 64]),
                 )
-                self.model.load_state_dict(checkpoint['model_state_dict'])
+                self.model.load_state_dict(checkpoint["model_state_dict"])
                 self.model.to(self.device)
                 self.model.eval()
 
-                if 'scaler' in checkpoint:
-                    self.scaler = checkpoint['scaler']
-                if 'supported_motifs' in checkpoint:
-                    self.supported_motifs = checkpoint['supported_motifs']
+                if "scaler" in checkpoint:
+                    self.scaler = checkpoint["scaler"]
+                if "supported_motifs" in checkpoint:
+                    self.supported_motifs = checkpoint["supported_motifs"]
 
                 self.is_trained = True
                 self.logger.info("Motif detector loaded successfully", model_path=path)
@@ -190,12 +215,12 @@ class MotifDetector:
                 raise ValueError("No model to save")
 
             checkpoint = {
-                'model_state_dict': self.model.state_dict(),
-                'input_dim': self.input_dim,
-                'hidden_dims': [256, 128, 64],
-                'scaler': self.scaler,
-                'supported_motifs': self.supported_motifs,
-                'config': self.config.dict()
+                "model_state_dict": self.model.state_dict(),
+                "input_dim": self.input_dim,
+                "hidden_dims": [256, 128, 64],
+                "scaler": self.scaler,
+                "supported_motifs": self.supported_motifs,
+                "config": self.config.dict(),
             }
 
             os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -216,7 +241,7 @@ class MotifDetector:
 
             feature_vector = self._extract_feature_vector(features)
 
-            if hasattr(self.scaler, 'mean_'):
+            if hasattr(self.scaler, "mean_"):
                 feature_vector = self.scaler.transform([feature_vector])[0]
 
             feature_tensor = torch.FloatTensor(feature_vector).unsqueeze(0).to(self.device)
@@ -228,13 +253,15 @@ class MotifDetector:
             for motif_type, confidence in zip(self.supported_motifs, probs):
                 confidence = float(confidence)
                 if confidence >= self.config.min_confidence_threshold:
-                    motifs.append(NeuralMotif(
-                        motif_id=str(uuid.uuid4()),
-                        motif_type=motif_type,
-                        confidence=confidence,
-                        features=self._summarize_features(features),
-                        description=f"Detected '{motif_type}' pattern with {confidence:.2f} confidence"
-                    ))
+                    motifs.append(
+                        NeuralMotif(
+                            motif_id=str(uuid.uuid4()),
+                            motif_type=motif_type,
+                            confidence=confidence,
+                            features=self._summarize_features(features),
+                            description=f"Detected '{motif_type}' pattern with {confidence:.2f} confidence",
+                        )
+                    )
 
             return motifs
 
@@ -246,24 +273,24 @@ class MotifDetector:
         """Extract feature vector from features dictionary (shared layout with emotion classifier)"""
         vector = []
 
-        for band in ['delta_power', 'theta_power', 'alpha_power', 'beta_power', 'gamma_power']:
+        for band in ["delta_power", "theta_power", "alpha_power", "beta_power", "gamma_power"]:
             if band in features:
                 vector.extend(features[band])
             else:
                 vector.extend([0.0] * 8)
 
-        for param in ['hjorth_activity', 'hjorth_mobility', 'hjorth_complexity']:
+        for param in ["hjorth_activity", "hjorth_mobility", "hjorth_complexity"]:
             if param in features:
                 vector.extend(features[param])
             else:
                 vector.extend([0.0] * 8)
 
-        vector.append(features.get('frontal_asymmetry', 0.0))
-        vector.append(features.get('parietal_asymmetry', 0.0))
-        vector.append(features.get('artifact_ratio', 0.0))
-        vector.append(float(features.get('eye_blink_count', 0)))
+        vector.append(features.get("frontal_asymmetry", 0.0))
+        vector.append(features.get("parietal_asymmetry", 0.0))
+        vector.append(features.get("artifact_ratio", 0.0))
+        vector.append(float(features.get("eye_blink_count", 0)))
 
-        for stat in ['mean_amplitude', 'std_amplitude', 'skewness', 'kurtosis']:
+        for stat in ["mean_amplitude", "std_amplitude", "skewness", "kurtosis"]:
             if stat in features:
                 vector.extend(features[stat])
             else:
@@ -274,17 +301,19 @@ class MotifDetector:
     def _summarize_features(self, features: Dict[str, Any]) -> Dict[str, float]:
         """Summarize key band powers that drove a motif detection"""
         summary = {}
-        for band in ['delta_power', 'theta_power', 'alpha_power', 'beta_power', 'gamma_power']:
+        for band in ["delta_power", "theta_power", "alpha_power", "beta_power", "gamma_power"]:
             values = features.get(band, [])
             summary[band] = float(np.mean(values)) if len(values) else 0.0
-        summary['frontal_asymmetry'] = float(features.get('frontal_asymmetry', 0.0))
-        summary['artifact_ratio'] = float(features.get('artifact_ratio', 0.0))
+        summary["frontal_asymmetry"] = float(features.get("frontal_asymmetry", 0.0))
+        summary["artifact_ratio"] = float(features.get("artifact_ratio", 0.0))
         return summary
 
     async def train_synthetic(self, training_data: TrainingData):
         """Train the motif detector with synthetic data"""
         try:
-            self.logger.info("Starting motif detector synthetic training", n_samples=len(training_data.features))
+            self.logger.info(
+                "Starting motif detector synthetic training", n_samples=len(training_data.features)
+            )
 
             features = training_data.features
             labels = self._generate_motif_labels(features)
@@ -304,13 +333,15 @@ class MotifDetector:
 
             self.model = MotifDetectorNet(
                 input_dim=train_dataset.feature_vectors.shape[1],
-                num_motifs=len(self.supported_motifs)
+                num_motifs=len(self.supported_motifs),
             ).to(self.device)
 
             optimizer = torch.optim.Adam(self.model.parameters(), lr=0.001, weight_decay=1e-5)
-            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5)
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer, patience=5, factor=0.5
+            )
 
-            best_val_loss = float('inf')
+            best_val_loss = float("inf")
             patience = 10
             patience_counter = 0
 
@@ -323,7 +354,7 @@ class MotifDetector:
                     "Motif detector epoch completed",
                     epoch=epoch,
                     train_loss=train_loss,
-                    val_loss=val_loss
+                    val_loss=val_loss,
                 )
 
                 if val_loss < best_val_loss:
@@ -349,38 +380,29 @@ class MotifDetector:
         motif_idx = {motif: i for i, motif in enumerate(self.supported_motifs)}
 
         for i, feature_dict in enumerate(features):
-            alpha = np.mean(feature_dict.get('alpha_power', [0.5] * 8))
-            beta = np.mean(feature_dict.get('beta_power', [0.5] * 8))
-            theta = np.mean(feature_dict.get('theta_power', [0.5] * 8))
-            gamma = np.mean(feature_dict.get('gamma_power', [0.5] * 8))
-            delta = np.mean(feature_dict.get('delta_power', [0.5] * 8))
-            asymmetry = feature_dict.get('frontal_asymmetry', 0.0)
-            artifact_ratio = feature_dict.get('artifact_ratio', 0.0)
-
-            if alpha > 1.2 and theta > 1.0 and beta < 0.8:
-                labels[i, motif_idx['meditation']] = 1.0
-            if beta > 1.5 and gamma > 1.0 and asymmetry < -0.2:
-                labels[i, motif_idx['stress']] = 1.0
-            if beta > 1.2 and alpha < 0.8:
-                labels[i, motif_idx['focus']] = 1.0
-            if theta > 1.0 and alpha > 0.8 and asymmetry > 0.1:
-                labels[i, motif_idx['creativity']] = 1.0
-            if alpha > 1.2 and beta < 0.6:
-                labels[i, motif_idx['relaxation']] = 1.0
-            if beta > 1.0 and gamma > 0.8 and artifact_ratio < 0.2:
-                labels[i, motif_idx['alertness']] = 1.0
-            if delta > 1.2 and beta < 0.5:
-                labels[i, motif_idx['fatigue']] = 1.0
-            if theta > 1.2 and 0.6 < beta < 1.2:
-                labels[i, motif_idx['confusion']] = 1.0
-            if 0.8 < alpha < 1.3 and 0.8 < beta < 1.3 and artifact_ratio < 0.15:
-                labels[i, motif_idx['flow_state']] = 1.0
-            if beta > 1.5 and gamma > 1.2 and artifact_ratio > 0.3:
-                labels[i, motif_idx['anxiety']] = 1.0
+            band_summary = self._label_heuristic_inputs(feature_dict)
+            for motif, rule in _MOTIF_LABEL_RULES.items():
+                if rule(band_summary):
+                    labels[i, motif_idx[motif]] = 1.0
 
         return labels
 
-    async def _train_epoch(self, train_loader: DataLoader, optimizer: torch.optim.Optimizer) -> float:
+    @staticmethod
+    def _label_heuristic_inputs(feature_dict: Dict[str, Any]) -> Dict[str, float]:
+        """Reduce a feature sample to the scalar band-power summary used by the motif label rules"""
+        return {
+            "alpha": float(np.mean(feature_dict.get("alpha_power", [0.5] * 8))),
+            "beta": float(np.mean(feature_dict.get("beta_power", [0.5] * 8))),
+            "theta": float(np.mean(feature_dict.get("theta_power", [0.5] * 8))),
+            "gamma": float(np.mean(feature_dict.get("gamma_power", [0.5] * 8))),
+            "delta": float(np.mean(feature_dict.get("delta_power", [0.5] * 8))),
+            "asymmetry": feature_dict.get("frontal_asymmetry", 0.0),
+            "artifact_ratio": feature_dict.get("artifact_ratio", 0.0),
+        }
+
+    async def _train_epoch(
+        self, train_loader: DataLoader, optimizer: torch.optim.Optimizer
+    ) -> float:
         self.model.train()
         total_loss = 0.0
 
@@ -421,5 +443,5 @@ class MotifDetector:
             "supported_motifs": self.supported_motifs,
             "device": str(self.device),
             "model_path": self.model_path,
-            "scaler_fitted": hasattr(self.scaler, 'mean_')
+            "scaler_fitted": hasattr(self.scaler, "mean_"),
         }

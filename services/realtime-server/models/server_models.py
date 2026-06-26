@@ -2,14 +2,16 @@
 Server data models for DreamWalk real-time server
 """
 
-from typing import Dict, Any, Optional
 from datetime import datetime
-from pydantic import BaseModel, Field
+from typing import Any, Dict, Optional
+
 from fastapi import WebSocket
+from pydantic import BaseModel, Field
 
 
 class StreamRequest(BaseModel):
     """Request to start a streaming session"""
+
     session_id: str = Field(..., description="Unique session identifier")
     signal_type: str = Field(default="mock", description="Signal source type (mock, eeg, fmri)")
     config: Dict[str, Any] = Field(default_factory=dict, description="Signal stream configuration")
@@ -17,6 +19,7 @@ class StreamRequest(BaseModel):
 
 class StreamResponse(BaseModel):
     """Response after starting a streaming session"""
+
     status: str = Field(..., description="Session status")
     session_id: str = Field(..., description="Session identifier")
     websocket_url: str = Field(..., description="WebSocket URL for the session")
@@ -24,6 +27,7 @@ class StreamResponse(BaseModel):
 
 class WorldStateUpdate(BaseModel):
     """World state update broadcast to clients"""
+
     session_id: str = Field(..., description="Session identifier")
     timestamp: datetime = Field(default_factory=datetime.utcnow, description="Update timestamp")
     world_state: Dict[str, Any] = Field(default_factory=dict, description="World state payload")
@@ -31,6 +35,7 @@ class WorldStateUpdate(BaseModel):
 
 class SessionInfo(BaseModel):
     """Information about a streaming session"""
+
     session_id: str = Field(..., description="Session identifier")
     status: str = Field(..., description="Session status (active, stopped)")
     started_at: datetime = Field(..., description="Session start time")
@@ -41,6 +46,7 @@ class SessionInfo(BaseModel):
 
 class ServerConfig(BaseModel):
     """Real-time server configuration"""
+
     processing_rate_hz: float = Field(default=10.0, description="World state processing rate in Hz")
     enable_texture_generation: bool = Field(default=True, description="Enable texture generation")
     enable_narrative: bool = Field(default=True, description="Enable narrative generation")
